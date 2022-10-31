@@ -1,0 +1,149 @@
+***(
+    This file includes the behavioral description of the BPA processes
+    inspired from
+
+    W. Fokkink. Introduction to Process Algebra. 
+    Springer-Verlag, Berlin,2000.
+
+    The behavioral specification is used in 
+
+    Dorel Lucanu and Grigore Rosu.
+    Circular coinduction with special contexts.
+    In ICFEM 2009, volume 5885 of LNCS, pages 639-659. Springer, 2009.
+
+***)
+
+loop init .
+
+(theory BPA is
+  inc BOOL + INT .
+  sort Alph .          --- the alphabet
+  sort Pexp .          --- process expressions
+  sort Pid .           --- process ids
+  sort Peq .           --- process equations
+  sort Set{Peq} .          --- sets of process equations
+
+  var E E' E1 E2 E1' E2' : Pexp .
+  var X : Pid .
+  var P : Set{Peq} .
+  var A B : Alph .
+
+
+  subsort Peq < Set{Peq} .
+  subsort Alph < Pexp .
+  subsort Pid < Pexp .
+
+  op _`,_ : Set{Peq} Set{Peq} -> Set{Peq} [assoc comm] .
+  eq (PQ:Peq , PQ:Peq) = PQ:Peq .
+
+  op _=def_   : Pid   Pexp -> Peq .
+  op  pmain   :            -> Set{Peq} .
+  op  _`{_`}  : Pexp Alph  -> Pexp [prec 15] . --- the letters derivatives
+  op epsIn : Pexp -> Bool .
+
+
+
+  ceq B { A } = bottom if A =/= B .
+  eq epsIn(A) = false .
+
+  op bottom : -> Pexp .
+---  eq bottom { A }   = bottom .
+---  eq epsIn(bottom) = false .
+
+  op epsilon : -> Pexp .
+  eq epsilon { A } = bottom .
+  eq epsIn(epsilon) = true .
+
+  op _+_ : Pexp Pexp -> Pexp [prec 33 assoc comm] .  --- union
+  eq (E1 + E2){ A } =  E1 { A } +  E2 { A } .
+  eq epsIn(E1 + E2) = epsIn(E1) or epsIn(E2) .
+  
+  op _;_ : Pexp Pexp -> Pexp [prec 31 assoc] .  --- concatenation
+  eq A { A } = epsilon .
+  eq A { B } = bottom [owise] .
+  ceq (E1 ; E2){ A } = (E1 { A }) ; E2
+    if E1 =/= epsilon
+    /\ E1 =/= bottom
+  .
+  eq epsIn(E1 ; E2) = epsIn(E1) and epsIn(E2) .
+
+
+  ceq X { A } = (E) { A } if ( (X =def E), P ) := pmain .
+  eq epsIn(X) = false .
+
+  --- simplifying equations
+  eq bottom + E = E .
+  eq bottom ; E = bottom .
+  eq epsilon ; E = E .
+  eq E + E = E .
+  eq (E1 + E2) ; E = (E1 ; E) + (E2 ; E) .
+endtheory)
+
+(theory BPA-EX1 is
+  including BPA .
+
+  ops a : -> Alph .
+
+  ops X A : -> Pid .
+
+  eq pmain = ( A =def a + a ; A ; a ), 
+             ( X =def a + a ; a ; X ) .
+
+  der *:Pexp { a } .
+  der epsIn(*:Pexp) .
+endtheory)
+
+(set auto contexts on .)
+(initialize .)
+(add goal A = X .)
+(coinduction .)
+
+(theory BPA-EX2 is
+  including BPA .
+
+  ops a b : -> Alph .
+
+  ops U V Y : -> Pid .
+
+  eq pmain = ( Y =def  a ; b ; Y ), 
+             ( U =def a ; V ), 
+             ( V =def b ; U ) .
+
+  der *:Pexp { a } .
+  der *:Pexp { b } .
+  der epsIn(*:Pexp) .
+endtheory)
+
+
+(initialize .)
+(add goal Y = U .)
+(coinduction .)
+
+(theory BPA-EX3 is
+  including BPA .
+  ops a : -> Alph .
+  ops X U V : -> Pid .
+  eq pmain = ( X =def (a ; X ; a) + a ),
+             ( U =def (a ; V) + a ),
+             ( V =def (a ; a ; V) + (a ; a) ) .
+
+  der *:Pexp { a } .
+
+  csrl (E1:Pexp + E2:Pexp) = (E1':Pexp + E2':Pexp)
+    => (E1:Pexp = E1':Pexp)
+    if (E2:Pexp = E2':Pexp)
+  .
+
+
+  csrl E4:Pexp ; E3':Pexp = (E1:Pexp ; E3:Pexp) + (E2:Pexp ; E3:Pexp)
+    => (E1:Pexp + E2:Pexp = E4:Pexp)
+    if (E3:Pexp = E3':Pexp)
+  .
+
+endtheory)
+
+(add goal U = X .)
+
+---eof
+(coinduction .)
+

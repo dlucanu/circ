@@ -1,0 +1,97 @@
+***(
+
+  Induction proof of a simple natural numbers summing operation.
+
+)
+
+loop init .
+
+---(set show details on .)
+
+(theory NAT is
+  including BOOL .
+
+  sort Nat .
+
+  op 0 :     -> Nat [ctor] .
+  op s : Nat -> Nat [ctor] .
+
+  vars M N : Nat .
+
+  op sum : Nat Nat -> Nat .
+***()
+  eq sum(M, 0) = M .
+  eq sum(M, s(N)) = s(sum(M, N)) .
+***)
+
+***(
+  eq sum(0, N) = N .
+  eq sum(s(M), N) = s(sum(M, N)) .
+***)
+  op _<_ : Nat Nat -> Bool .
+  eq 0 < s(N) = true .
+  eq M < 0 = false .
+  eq s(M) < s(N) = M < N .
+
+
+  op _<=_ : Nat Nat -> Bool .
+  eq 0 <= N = true .
+  eq s(M) <= 0 = false .
+  eq s(M) <= s(N) = M <= N .
+
+  op max : Nat Nat -> Nat .
+  eq max(M, 0) = M .
+  eq max(0, s(N)) = s(N) .
+  eq max(s(M), s(N)) = s(max(M, N)) .   
+
+  sort List .
+  subsort Nat < List .
+  op nil : -> List [ctor] .
+  op _:_ : Nat List -> List [ctor] .
+  eq N : nil = N . 
+  
+  vars L L1 L2 : List .
+
+  op maxlist : List List -> List .
+  eq maxlist(L, nil) = nil .
+  eq maxlist(nil, L) = nil .
+  eq maxlist(M : L1, N : L2) = max(M, N) : maxlist(L1, L2) .
+  eq maxlist(M, N) = max(M, N) .
+
+  srl (N1:Nat : L1:List) = (N2:Nat : L2:List)
+      =>
+      (N1:Nat = N2:Nat)
+      /\
+      (L1:List = L2:List) .
+
+endtheory)
+
+(initialize .)
+(add goal sum(N:Nat, M:Nat) = sum(M:Nat, N:Nat) .)
+(induction .)
+
+(initialize .)
+(add goal sum(M:Nat, sum(N:Nat, P:Nat)) = sum(sum(M:Nat, N:Nat), P:Nat) .)
+(set induction vars P:Nat .)
+(induction .)
+
+
+---> examples of non-linear inductive properties
+
+(initialize .)
+(add goal N:Nat < N:Nat = false .)
+(induction .)
+
+(initialize .)
+(add goal N:Nat <= N:Nat = true .)
+(induction .)
+
+(initialize .)
+(add goal max(N:Nat, N:Nat) = N:Nat .)
+(induction .)
+
+(initialize .)
+(add lemma max(N:Nat, N:Nat) = N:Nat .)
+(add goal maxlist(L:List, L:List) = L:List .)
+(induction .)
+

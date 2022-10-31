@@ -1,0 +1,42 @@
+***(
+
+  Induction proof for the property:
+    "The length of a list is equal to the length of the mirror of the list"
+
+)
+
+---(set show details on .)
+
+(cth LIST is
+  including NAT .
+
+  sorts NeList List .
+  subsort Nat < NeList < List .
+
+  var L1 L2 : List .
+  var N     : Nat .
+
+  op nil : -> List [ctor] .
+  op __  : List List -> List [ctor assoc id: nil] .
+
+  op len : List -> Nat .
+  eq len(nil)= 0 .
+  eq len(N) = 1 .
+  ceq len(L1  L2) = len(L1) + len(L2)
+    if L1 =/= nil
+    /\ L2 =/= nil 
+  .
+
+  op mirror : List -> List .
+  eq mirror(nil) = nil .
+  eq mirror(N) = N .
+  ceq mirror(L1 L2) = mirror(L2) mirror(L1)
+    if L1 =/= nil
+    /\ L2 =/= nil
+  .
+endcth) 
+
+(set show proved properties off .)
+
+(add goal len(mirror(L:List)) = len(L:List) . )
+(induction .)

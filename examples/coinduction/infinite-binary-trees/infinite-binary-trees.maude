@@ -1,0 +1,132 @@
+***(
+    This file includes the behavioral specification of the infinite
+    binary trees with a boolean ring as visible data.
+    The usual properties are proved. 
+    The example is used in
+
+   G. Grigorasü and D. L. G. Caltais, E. Goriac.
+   Automated proving of the behavioral attributes.
+   Proceedings of the 4th Balkan Conference in Informatics (BCIÕ09), 
+   IEEE Computer Society, 2009.
+
+***)
+
+loop init .
+
+(theory B-RING is
+  sort Z2 .
+  ops 0 1 : -> Z2 .
+  op _+_ : Z2 Z2 -> Z2 [assoc comm] .
+  op _x_ : Z2 Z2 -> Z2 [assoc comm] .
+  op ~_ : Z2 -> Z2 .
+
+  eq 1 x X:Z2 = X:Z2 .
+  eq 0 + X:Z2 = X:Z2 .
+
+  eq 1 + 1 = 0 .
+  eq 0 x X:Z2 = 0 .
+  eq ~ 0 = 1 .
+  eq ~ 1 = 0 .
+  eq ~ ~ X:Z2 = X:Z2 .
+endtheory)
+
+(theory TREE is
+  including B-RING .
+
+  sort Tree .
+  vars T T1 T2 : Tree .  
+  var X : Z2 .
+
+  op root : Tree -> Z2 .
+  ops left right : Tree -> Tree .
+
+  op ~_ : Tree -> Tree .
+  eq root(~ T) = ~ root(T) .
+  eq left(~ T) = ~ left(T) .
+  eq right(~ T) = ~ right(T) .
+
+  op rev_ : Tree -> Tree .
+  eq root(rev T) = root(T) .
+  eq left(rev T) = rev right(T) .
+  eq right(rev T) = rev left(T) .
+
+  op thue : -> Tree .
+  eq root(thue) = 0 .
+  eq left(thue) = thue .
+  eq right(thue) = thue + one .
+
+  op _+_ : Tree Tree -> Tree .
+  eq root(T1 + T2) = root(T1) + root(T2) .
+  eq left(T1 + T2) = left(T1) + left(T2) .
+  eq right(T1 + T2) = right(T1) + right(T2) .
+
+  op zero : -> Tree .
+  eq root(zero) = 0 .
+  eq left(zero) = zero .
+  eq right(zero) = zero .
+
+  op one : -> Tree .
+  eq root(one) = 1 .
+  eq left(one) = one .
+  eq right(one) = one .
+  
+  op `[_`] : Z2 -> Tree .
+  eq root([ X ]) = X .
+  eq left([ X ]) = zero .
+  eq right([ X ]) = zero .
+
+  op _x_ : Tree Tree -> Tree [assoc] .
+  eq root(T1 x T2) = root(T1) x root(T2) .
+  eq left(T1 x T2) = (left(T1) x T2) + ([root(T1)] x left(T2)) .
+  eq right(T1 x T2) = (right(T1) x T2) + ([root(T1)] x right(T2)) .
+
+  op R : -> Tree .
+  eq root(R) = 0 .
+  eq left(R) = zero .
+  eq right(R) = [1] .
+
+--- some lemmas
+  eq [0] = zero .
+  
+--- derivatives
+  der root(*:Tree) .
+  der left(*:Tree) .
+  der right(*:Tree) .
+endtheory)
+
+(set auto contexts on .)
+(initialize .)
+
+(add goal zero + zero = zero .)
+(coinduction .)
+
+(add goal T:Tree x zero = zero .)
+
+(coinduction .)
+
+(add goal zero x T:Tree = zero .)
+(coinduction .)
+
+(add goal ~ ~ T:Tree = T:Tree .)
+(coinduction .)
+
+(add goal T:Tree x [1] = T:Tree .)
+(coinduction .)
+
+(add goal [1] x T:Tree = T:Tree .)
+(coinduction .)
+
+(add goal rev rev T:Tree = T:Tree .)
+(coinduction .)
+
+(add goal thue + one = ~ thue .)
+(coinduction .)
+
+(add goal thue = one x R x one .)
+(coinduction .)
+
+(set show proved properties off .)
+(add goal (op _+_ : Tree Tree -> Tree [assoc comm id: zero] .) .)
+(coinduction .)
+
+(show last proof .)

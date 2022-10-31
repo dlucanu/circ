@@ -1,0 +1,73 @@
+***(
+
+   Properties for binary trees and streams of binary trees.
+   It exhibits how the coinduction over trees is automatically
+   extended over streams.
+
+   The example is used in
+
+   D. Lucanu and G. Rosu.
+   Circ : A circular coinductive prover.
+   In CALCO 2007, volume 4624 of LNCS, pages 372{378. Springer, 2007.
+
+***)
+
+---(set show details on .)
+
+(theory TSTREAM is
+  sorts Elt BTree TStream .
+
+  var S : TStream .
+  var E : Elt .
+  vars T T1 T2 : BTree .
+
+  ops left right : BTree -> BTree .
+  op node : BTree -> Elt .
+
+  op mirror : BTree -> BTree .
+  eq left(mirror(T)) = mirror(right(T)) .
+  eq right(mirror(T)) = mirror(left(T)) .
+  eq node(mirror(T)) = node(T) .
+
+  op hd : TStream -> BTree .
+  op tl : TStream -> TStream .
+
+  op cons : BTree TStream -> TStream .
+  eq hd(cons(T, S)) = T .
+  eq tl(cons(T, S)) = S .
+
+  op blink : BTree BTree -> TStream .
+  op blink1 : BTree BTree -> TStream .
+  eq hd(blink(T1, T2)) = T1 .
+  eq hd(blink1(T1, T2)) = T1 .
+  eq tl(blink(T1, T2)) = cons(T2, blink1(T2,T1)) .
+  eq tl(blink1(T1, T2)) = cons(T2, blink(T1,T2)) .
+
+  op const : BTree -> TStream .
+  eq hd(const(T)) = T .
+  eq tl(const(T)) = const(T) .
+endtheory)
+
+(theory B-TSTREAM is
+  including TSTREAM .
+
+  der left(*:BTree) .
+  der right(*:BTree) .
+  der node(*:BTree) .
+  der hd(*:TStream) .
+  der tl(*:TStream) .
+endtheory)
+
+(initialize .)
+
+(add goal mirror(mirror(T:BTree)) = T:BTree .)
+(coinduction .)
+
+(add goal cons(T:BTree, const(T:BTree)) = const(T:BTree) .)
+(coinduction .)
+
+(add goal blink(mirror(mirror(T:BTree)), T:BTree) = const(T:BTree) .)
+(coinduction .)
+(show proof .)
+
+eof

@@ -1,0 +1,44 @@
+loop init .
+
+(set show details off .)
+
+
+(theory MAXLIST is
+  including BOOL .
+
+  sort Elt .
+  vars M N P Q : Elt .
+
+  op _<=_ : Elt Elt -> Bool .
+  ceq  M <= max(N, P) = true if M <= N .
+  ceq  M <= max(N, P) = true if M <= P .
+
+  sort List .
+  subsort Elt < List .
+  op _;_ : Elt List -> List [ctor] .
+
+  vars L L1 L2 : List .
+
+  op _<=_ : List List -> Bool .
+  eq L <= L = true .
+  eq M <= N ; L = (M <= N) and (M <= L) .
+  eq M ; L1 <= L = (M <= L) and (L1 <= L) .
+
+  op max : Elt Elt -> Elt [assoc] .
+  
+  op  max : List -> Elt .
+  eq max(N) = N .
+  eq max (M ; N) = max(M, N) .
+  eq max(M ; (N ; L)) = max(max(M, N), max(L)) .
+  
+  srl (B1:Bool and B2:Bool = true)
+       =>
+	  (B1:Bool = true) /\ (B2:Bool = true )
+  .
+ endtheory)
+
+(add goal L:List <= max(L:List) = true .)
+(set induction vars L:List .)
+(apply ((reduce |> simplify |> cistep)! ) .)
+---(apply (cistep # reduce # simplify # (reduce |> cistep)! ) .)
+(show proof .)

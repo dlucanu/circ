@@ -1,0 +1,150 @@
+***(
+
+    --- 1 ---
+   /         \
+  /          \/
+ p            q
+ /\          /
+  \         /
+   --- 0 ---
+   
+        -- a --       
+       / /\ /\ \
+      /  |  |   \  
+     1   0  0   0    
+     |   |  |   |    
+     |   /  \   |
+     \/ /    \ \/
+      b       c
+
+a === p
+
+p --1-> q
+q --0-> p
+
+a --1-> b \/ a --0-> c
+b --0-> a
+c --0-> a
+
+***)
+
+loop init .
+
+(theory RULES is
+  sort Label .
+  sort State .
+  sort Pair PairDisj .
+  subsort Pair < PairDisj .
+  
+  op empty : -> PairDisj .
+  op _\/_ : PairDisj PairDisj -> PairDisj [assoc] .
+  eq empty \/ PD1 = PD1 .
+  eq PD1 \/ empty = PD1 .
+  eq PD1 \/ empty \/ PD2 = PD1 \/ PD2 .
+  
+  ops p q a b c : -> State .
+  ops 0 1 ^     : -> Label . --- ^ is the start label
+  op <_`,_> : Label State -> Pair .
+  
+  op label : Pair -> Label .
+  
+  var L : Label .
+  var S : State .
+  
+  eq label(< L , S >) = L .
+    
+  
+  rl < L , p > => < 1 , q > .
+  rl < L , q > => < 0 , p > .
+  
+  rl < L , b > => < 0 , a > .
+  rl < L , c > => < 0 , a > .
+  rl < L , a > => < 1 , b > .
+  rl < L , a > => < 0 , c > .
+
+  var PD1 PD1' PD2 PD2' : PairDisj .
+  srl PD1 \/ PD1' = PD2
+   => PD1 = PD2
+   \/ PD1' = PD2
+  .
+  
+  var L1 L2 : Label .
+  var S1 S2 : State .
+  var P1 P2 : Pair .
+  csrl < L1 , S1 > = < L2 , S2 >
+    => true = false
+    if L1 =/= L2
+  .
+  
+  op pair : -> [Pair] .
+  
+endtheory)
+
+(theory TRICK is
+  including RULES .
+  including META-LEVEL .
+  ---including  .
+  
+  var P : Pair .
+  var T T1 T2 : Term .
+  var TL TL1 TL2 : TermList .
+  
+  
+  
+  op convTerm2PairDisj : TermList -> PairDisj .
+  eq convTerm2PairDisj('<_`,_>[T1, T2]) =
+     < convTerm2Label(T1) , convTerm2State(T2) >
+  .
+  ceq convTerm2PairDisj((TL1, TL2)) =
+      convTerm2PairDisj(TL1) \/ convTerm2PairDisj(TL2)
+    if TL1 =/= empty
+    /\ TL2 =/= empty
+  .
+ 
+  ***(
+  op convTerm2Label : Term -> Label .
+  eq convTerm2Label('0.Label) = 0 .
+  eq convTerm2Label('1.Label) = 1 .
+  eq convTerm2Label('^.Label) = ^ .
+  ***)
+  op convTerm2Label : Term -> Label .
+  eq convTerm2Label(T:Term) = downTerm(T:Term, 0) .
+  
+  op convTerm2State : Term -> State .
+  eq convTerm2State('p.State) = p .
+  eq convTerm2State('q.State) = q .
+  eq convTerm2State('a.State) = a .
+  eq convTerm2State('b.State) = b .
+  eq convTerm2State('c.State) = c .
+  
+  op next : Pair -> PairDisj .
+  eq next(P) = convTerm2PairDisj(nextRewrites(P)) .
+  
+  var N : Nat . 
+  op nextRewrites : Pair -> TermList .
+  op nextRewrites : Pair Nat -> TermList .
+  eq nextRewrites(P) = nextRewrites(P, 0) .
+  ceq nextRewrites(P, N) = T , nextRewrites(P, N + 1)
+    if T := getTerm(
+              metaSearch(
+                upModule(RULES),
+                upTerm(P),
+                'GENERAL-PAIR:Pair,
+                nil,
+                '+, --- perform at least one step
+                1,  --- 1-bounded = exactly one rewrite step
+                N
+            ))
+  .
+  eq nextRewrites(P, N) = empty [owise] .
+  
+  derivative next(*:Pair) .
+  derivative label(*:Pair) .
+endtheory)
+
+(initialize .)
+
+(set show details on .)
+(add goal < ^ , a > = < ^ , p > .)
+(coinduction .)
+

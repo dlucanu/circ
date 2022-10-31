@@ -1,0 +1,72 @@
+***(
+
+A simple example showing how to interactively prove a property using both
+induction and coinduction.
+
+)
+
+---(set show details on .)
+
+(fth MYNAT is
+  sorts Nat NzNat .
+  subsort NzNat < Nat .
+
+  var M N P : Nat .
+
+  op 0 : -> Nat [ctor] .
+  op s_ : Nat -> NzNat [ctor] .
+  op _+_ : Nat Nat -> Nat [prec 33 assoc] .
+
+  eq M + 0 = M .
+  eq M + (s N) = s(M + N) .
+    
+endfth)
+
+
+(fth STREAM is
+  sort Stream .
+  including MYNAT .
+ 
+*** observers
+  op hd : Stream -> Nat .
+  op tl : Stream -> Stream .
+  op _+_ : Stream Stream -> Stream .
+
+  var S S1 S2 : Stream .
+  eq hd(S1 + S2) = hd(S1) + hd(S2) .
+  eq tl(S1 + S2) = tl(S1) + tl(S2) .
+
+  --- identity element
+  op zero : -> Stream .
+  eq hd(zero) = 0 .
+  eq tl(zero) = zero .
+  
+endfth)
+
+(cth B-STREAM is
+  including STREAM .
+  der hd(*:Stream) .
+  der tl(*:Stream) .
+
+  ***(
+  srl (0 + hd(S:Stream)) = (hd(S:Stream))
+    => (0 + N:Nat) = N:Nat
+  .
+  )
+
+endcth)
+
+(set show details on .)
+(add goal zero + S:Stream = S:Stream .)
+(ccstep .)
+
+(reduce .)
+
+(save proof state .)
+(add goal 0 + N:Nat = N:Nat .)
+
+(induction on N:Nat .)
+***> induction proof succeeded; /* popping from the stack */
+
+(reduce .)
+(reduce .)

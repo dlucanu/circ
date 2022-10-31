@@ -1,0 +1,141 @@
+  
+
+***(
+    This file includes the behavioral specification of the streams whose
+    visible data is a field theory. The examples are inspired from
+
+    J. J. M. M. Rutten. 
+    A coinductive calculus of streams.    Mathematical Structures in Computer Science, 15(1):93-147, 2005.
+
+    and studied in
+
+    D. Lucanu,
+    Proving Behavioral Commutativity with CIRC.
+    In SYNASC 2007, IEEE Computer Society, 2007.
+)
+
+(set show details off .)
+
+(theory FIELD is 
+  sorts NzData Data .
+  subsort NzData < Data .
+
+  var D D1 D2 : Data .
+  var ND : NzData .
+
+  op 1 : -> NzData .
+  op 0 : -> Data .
+  op _+_ : Data Data -> Data [prec 33 assoc comm] .
+  op -_ : Data -> Data .
+  op _*_ : Data Data -> Data [prec 31 assoc comm] .
+  op _*_ : NzData NzData -> NzData [ditto] .
+  op inv : NzData -> NzData .
+
+  eq D * 1 = D .
+  eq (- 1) * D = - D .
+  eq (- D1) * D2 = - (D1 * D2) .
+  eq D * (D1 + D2) = D * D1 + D * D2 .
+  eq D * 0 = 0 .
+  eq ND * inv(ND) = 1 .
+  eq inv(1) = 1 .
+  eq D + (- D) = 0 .
+  eq D + 0 = D .
+endtheory)
+
+(theory FIELDSTREAM is
+  including FIELD .
+  sorts Stream NzStream .
+  subsort NzStream < Stream .
+
+  var S S1 S2 : Stream .
+  var M N N1 N2 : Data .
+
+  --- the observers
+  op hd : Stream -> Data .
+  op hd : NzStream -> NzData .
+  op tl : Stream -> Stream .
+
+  --- sum
+  op _+_ : Stream Stream -> Stream [assoc comm prec 33] .
+  eq hd(S1 + S2) = hd(S1) + hd(S2) .
+  eq tl(S1 + S2) = tl(S1) + tl(S2) .
+
+   --- inclusion operation
+  op `[_`] : Data -> Stream .
+  op `[_`] : NzData -> NzStream .
+  eq hd([M]) = M .
+  eq tl([M]) = [0] .
+  
+  --- convolution product
+  op _x_ : Stream Stream -> Stream [assoc comm prec 31] .
+  op _x_ : NzStream NzStream -> NzStream [ditto] .
+  eq hd(S1 x S2) = hd(S1) * hd(S2) .
+  eq tl(S1 x S2) = tl(S1) x S2 + [hd(S1)] x tl(S2) .
+
+  --- shuffle product
+  op _`(x`)_ : Stream Stream -> Stream [assoc comm prec 31] .
+  op _`(x`)_ : NzStream NzStream -> NzStream [ditto] .
+  eq hd(S1 (x) S2) = hd(S1) * hd(S2) .
+  eq tl(S1 (x) S2) = tl(S1) (x) S2 + S1 (x) tl(S2) .
+
+  --- the "variable" X
+  op X : -> Stream .
+  eq hd(X) = 0 .
+  eq tl(X) = [1] .
+
+  --- the iteration (star)
+  op _* : Stream -> NzStream .
+  eq hd(S *) = 1 .
+  eq tl(S *) = tl(S) x (S *) .
+
+  --- the inverse
+  op inv : NzStream -> NzStream .
+  eq hd(inv(S)) = inv(hd(S)) .
+  eq tl(inv(S)) = [- 1] x (inv([hd(S)]) x tl(S)) x inv(S) . 
+
+  --- some lemmas on streams (these are separately proved)
+  eq S + [0] = S .
+  eq S x [0] = [0] .
+  eq S x [1] = S .
+  eq S + [- 1] x S = [0] .
+  eq [M * N] = [M] x [N] .
+  eq [- M] x [- N] = [M] x [N] .
+  eq S (x) [0] = [0] .
+  eq S (x) [1] = S .
+  eq S (x) (S1 + S2) = S (x) S1 + S (x) S2 .
+
+  csrl
+    S:Stream + S:Stream x S2:Stream = S3:Stream x S4:Stream
+    =>
+    [1] + S2:Stream = S4:Stream
+    if (S:Stream = S3:Stream)
+  .
+
+
+  --- derivatives
+  der hd(*:Stream) .
+  der tl(*:Stream) .
+endtheory)
+
+(set auto contexts on .)
+(initialize .)
+
+--->
+
+(add cgoal S2:Stream + S:Stream x ((S:Stream) *) x S2:Stream =
+           ((S:Stream) *) x S2:Stream 
+           if hd(S:Stream) = 0 .)
+
+(add cgoal [1] + ((S:Stream)) x ((S:Stream)*)  = ((S:Stream)*) if hd(S:Stream) = 0 .)
+
+
+(coinduction .)
+
+(add goal inv([M:NzData]) = [inv(M:NzData)] .)
+(coinduction .)
+
+--->
+
+(add goal S:NzStream x inv(S:NzStream) = [1] .)
+(coinduction .)
+

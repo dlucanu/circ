@@ -1,0 +1,57 @@
+loop init .
+
+(theory FIB is
+  sort Nat .
+  op 0 : -> Nat [ctor] .
+  op s_ : Nat -> Nat [ctor] .
+
+  vars M N P : Nat .
+
+  op _+_ : Nat Nat -> Nat [assoc comm] .
+  eq M + 0 = M .
+  eq M + s N = s(M + N) .
+
+--- Fibonacci sequence
+  op fib : Nat -> Nat .
+  eq fib(0) = 0 .
+  eq fib(s 0) = s 0 .
+  eq fib(s s N) = fib(s N) + fib(N) .
+
+--- number of calls of fib()
+  op nc : Nat -> Nat .
+  eq nc(0) = s 0 .
+  eq nc(s 0) = s 0 .
+  eq nc(s s N) = nc(s N) + nc(N) + s 0 .
+
+--- number of plus of fib()
+  op np : Nat -> Nat .
+  eq np(0) = 0 .
+  eq np(s 0) = 0 .
+  eq np(s s N) = np(s N) + np(N) + s 0 .
+
+--- partial sum of fibs
+  op sum<k> : Nat -> Nat .
+  eq sum<k> (0) = 0 .
+  eq sum<k> (s N) = sum<k> (N) + fib(s N) .  
+
+  srl M + P = N + P
+      =>
+      M = N
+  .
+  srl M = s(N + P)
+      =>
+      M = s(N) + P
+  .
+endtheory)
+
+(initialize .)
+
+(add goal sum<k> (N:Nat) = np(s N:Nat) .)
+
+(set induction vars N:Nat .)
+
+(apply ( normalize |> reduce |> (simplify !) |> cistep ) ! .)
+
+---(induction .)
+---> The proof is:
+(show proof .)

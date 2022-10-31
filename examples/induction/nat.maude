@@ -1,0 +1,64 @@
+***(
+
+  Induction proof of a simple natural numbers summing operation.
+
+)
+
+loop init .
+
+---(set show details on .)
+
+(theory NAT is
+  including BOOL .
+
+  sort Nat .
+
+  op 0 :     -> Nat [ctor] .
+  op s : Nat -> Nat [ctor] .
+
+  var M N : Nat .
+
+  op sum : Nat Nat -> Nat .
+  eq sum(M, 0) = M .
+  eq sum(M, s(N)) = s(sum(M, N)) .
+
+  op _<_ : Nat Nat -> Bool .
+  eq 0 < s(N) = true .
+  eq M < 0 = false .
+  eq s(M) < s(N) = M < N .
+
+
+  op _<=_ : Nat Nat -> Bool .
+  eq 0 <= N = true .
+  eq s(M) <= 0 = false .
+  eq s(M) <= s(N) = M <= N .
+
+  op max : Nat Nat -> Nat .
+  eq max(M, 0) = M .
+  eq max(0, s(N)) = s(N) .
+  eq max(s(M), s(N)) = s(max(M, N)) .   
+
+endtheory)
+
+(initialize .)
+
+---> commutativity of sum
+
+(add goal sum(N:Nat, M:Nat) = sum(M:Nat, N:Nat) .)
+(induction .)
+
+---> associativity of sum
+
+(initialize .)
+(add goal sum(M:Nat, sum(N:Nat, P:Nat)) = sum(sum(M:Nat, N:Nat), P:Nat) .)
+(set induction vars P:Nat .)
+(induction .)
+
+
+---> example of non-linear inductive property
+
+(initialize .)
+
+(add goal max(N:Nat, N:Nat) = N:Nat .)
+(induction .)
+

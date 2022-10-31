@@ -1,0 +1,105 @@
+***(
+
+    This file includes the behavioral specification of the regular 
+    expressions extended with negation and intersection.
+    The first behavioral specification of the regular expression 
+    is given in 
+
+    J. Goguen, K. Lin, and G. Rosu.
+    Circular Coinductive Rewriting.
+    ASE '00: Proceedings of the 15th IEEE international conference on 
+        Automated software engineering, 123-132, IEEE, 2000
+
+***)
+
+loop init .
+---(set show details on .)
+
+(theory ERE is
+  including BOOL .
+
+  sort Ere .   --- extended regular expressions
+  sort Alph .  --- the alphabet
+
+  var R R1 R2 : Ere .
+  var A B : Alph .
+
+  op _`{_`} : Ere Alph -> Ere .  --- letters derivatives
+  op epsIn_ : Ere -> Bool .      --- epsilon membership derivative
+
+  subsort Alph < Ere .  --- a letter
+  eq epsIn A = false .
+  eq B { A } = if A == B then epsilon else empty fi .
+
+  op epsilon : -> Ere .  --- the empty word
+  eq epsilon { A } = empty .
+  eq epsIn epsilon = true .
+
+  op empty : -> Ere .  --- the empty language
+  eq empty { A } = empty .
+  eq epsIn empty = false .
+
+  op neg_ : Ere -> Ere .  --- complement
+  eq (neg R) { A } = neg ( R { A } ) .
+  eq epsIn neg R = not epsIn R .  
+
+  op _#_ : Ere Ere -> Ere [assoc] .  --- concatenation
+  ceq ( R1 # R2 ){ A } = ((R1 { A }) # R2) + (R2 { A })
+     if epsIn R1 = true .
+  ceq ( R1 # R2 ){ A } = (R1 { A }) # R2 
+     if epsIn R1 = false .
+  eq epsIn ( R1 # R2 ) =  epsIn R1 and  epsIn R2 .
+
+  op _+_ : Ere Ere -> Ere [assoc comm] .  --- union
+  eq ( R1 + R2 ){ A } = (R1 { A }) + (R2 { A }) .
+  eq epsIn ( R1 + R2 ) = epsIn R1 or  epsIn R2 .
+
+  op _cap_ : Ere Ere -> Ere [assoc comm] .  --- intersection
+  eq (R1 cap R2) { A } = (R1 { A }) cap (R2 {A}) .
+  eq epsIn (R1 cap R2) = epsIn R1 and  epsIn R2 .
+
+  op _* : Ere -> Ere .  --- star operator
+  eq R * { A } = (R { A }) # (R *) . 
+  eq epsIn R * = true .
+
+  --- simplifying equations
+  eq empty + R = R .
+  eq empty # R = empty .
+  eq epsilon # R = R .
+  eq R + R = R . 
+endtheory)
+
+(theory TEST is
+  including ERE .
+
+  ops a b : -> Alph .
+
+  der epsIn(*:Ere) .
+  der *:Ere { a } .
+  der *:Ere { b } .
+
+---  srl (A:Alph = B:Alph) =>
+---      ((A:Alph == B:Alph) = true)
+---  .
+endtheory)
+
+(initialize .)
+---(set generalization off .)
+
+(add goal (a + b)*  = ((a *)#(b *))* .)
+(coinduction .)
+
+
+(add goal (b + (a # b))* # (a + epsilon) = 
+  ((b * # a # b # b *)* #(a + epsilon)) + (b * #(a + epsilon)) .)
+
+(coinduction .)
+
+
+(add goal (b + (a # b))* # (a + epsilon) = 
+  neg(neg((b * # a # b # b *)* #(a + epsilon)) cap neg(b * #(a + epsilon))) .)
+(coinduction .)
+
+(add goal ((b *) # a) # ( (b *) # a ) * =
+          (b *) # (( a  # (b *)) *) # a .)
+(coinduction .)

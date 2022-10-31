@@ -1,0 +1,182 @@
+***(
+    This file includes examples of behavioral properties of streams 
+    for which the visible data part is a theory of bits. Some proved
+    properties are studied in the following papers:
+
+    Grigore Rosu and Dorel Lucanu. 
+    Circular Coinduction - A Proof Theoretical Foundation.
+    In CALCO 2009, volume 5728 of LNCS, pages 127-144. Springer, 2009.
+
+    Dorel Lucanu and Grigore Rosu.
+    Circular coinduction with special contexts.
+    In ICFEM 2009, volume 5885 of LNCS, pages 639-659. Springer, 2009.
+
+    E. Goriac, G. Caltais, and D. Lucanu. 
+    Simplification and Generalization in CIRC.    In 12th SYNASC 2009. IEEE Computer Society, 2009.
+
+    Dorel Lucanu, Eugen-Ioan Goriac, Georgiana Caltais, and Grigore Rosu.
+    CIRC: A behavioral verification tool based on circular coinduction.
+    In CALCO 2009, volume 5728 of LNCS, pages 433{442. Springer, 2009.
+***)
+
+
+loop init .
+
+(theory BIT is 
+  sort Bit .
+  ops 0 1 : -> Bit .
+  var B : Bit .
+  
+  op not : Bit -> Bit .
+  eq not(0) = 1 .    eq not(1) = 0 .
+  eq not(not(B)) = B .
+
+  op _+_ : Bit Bit -> Bit [assoc comm] .
+  eq B + 0 = B .
+  eq B + B = 0 .
+  eq B + not(B) = 1 .
+endtheory)
+
+(theory BITSTREAM is including BIT .
+  sort Stream .
+  vars S S' : Stream . 
+
+  --- destructors
+  op hd : Stream -> Bit .
+  op tl : Stream -> Stream .
+
+  --- odd and even streams         
+  ops odd even : Stream -> Stream .  
+  eq hd(odd(S)) = hd(S) .            
+  eq tl(odd(S)) = even(tl(S)) .      
+  eq even(S) = odd(tl(S)) .
+
+  --- zip of streams
+  op zip : Stream Stream -> Stream .
+  eq hd(zip(S,S')) = hd(S) .
+  eq tl(zip(S,S')) = zip(S',tl(S)) .
+  
+  --- complements a Bit stream    
+  op not : Stream -> Stream .        
+  eq hd(not(S)) = not(hd(S)) .      
+  eq tl(not(S)) = not(tl(S)) .      
+                                     
+  --- alternative function
+  op f : Stream -> Stream .
+  eq hd(f(S)) = hd(S) .
+  eq hd(tl(f(S))) = not(hd(S)) .
+  eq tl(tl(f(S))) = f(tl(S)) .
+  
+  --- Thue-Morse seqence M = 0:zip(inv(M),tail(M))
+  op morse : -> Stream .
+  eq hd(morse) = 0 .
+  eq hd(tl(morse)) = 1 .
+  eq tl(tl(morse)) = zip(tl(morse), not(tl(morse))) .
+  
+  --- Thue-Morse sequence M = f(0:tail(M))
+  op altMorse : -> Stream .
+  eq hd(altMorse) = 0 .
+  eq hd(tl(altMorse)) = 1 .
+  eq tl(tl(altMorse)) =  f(tl(altMorse)) .
+
+  --- s = (101110101011)^\infty
+  op s : -> Stream .
+  eq hd(s) = 1 .
+  eq hd(tl(s)) = 0 .
+  eq hd(tl(tl(s))) = 1 .
+  eq hd(tl(tl(tl(s)))) = 1 .
+  eq hd(tl(tl(tl(tl(s))))) = 1 .
+  eq hd(tl(tl(tl(tl(tl(s)))))) = 0 .
+  eq hd(tl(tl(tl(tl(tl(tl(s))))))) = 1 .
+  eq hd(tl(tl(tl(tl(tl(tl(tl(s)))))))) = 0 .
+  eq hd(tl(tl(tl(tl(tl(tl(tl(tl(s))))))))) = 1 .
+  eq hd(tl(tl(tl(tl(tl(tl(tl(tl(tl(s)))))))))) = 0 .
+  eq hd(tl(tl(tl(tl(tl(tl(tl(tl(tl(tl(s))))))))))) = 1 .
+  eq hd(tl(tl(tl(tl(tl(tl(tl(tl(tl(tl(tl(s)))))))))))) = 1 .
+  eq tl(tl(tl(tl(tl(tl(tl(tl(tl(tl(tl(tl(s)))))))))))) = s .
+
+  --- a different zipping way
+  op 31zip : Stream Stream -> Stream .
+  eq hd(31zip(S, S')) = hd(S) .
+  eq hd(tl(31zip(S, S'))) = hd(tl(S)) .
+  eq hd(tl(tl(31zip(S, S')))) = hd(tl(tl(S))) .
+  eq hd(tl(tl(tl(31zip(S, S'))))) = hd(S') .
+  eq tl(tl(tl(tl(31zip(S, S'))))) = 31zip(tl(tl(tl(S))), tl(S')) .
+
+  --- [1:0:1]^\infty          
+  op ozo : -> Stream .       
+  eq hd(ozo) = 1 .            
+  eq hd(tl(ozo)) = 0 .        
+  eq hd(tl(tl(ozo))) = 1 .
+  eq tl(tl(tl(ozo))) = ozo .
+  
+  --- sum of two consecutive elements
+  op g : Stream -> Stream .
+  eq hd(g(S)) = hd(S) + hd(tl(S)) .
+  eq tl(g(S)) = g(tl(S)) .
+  
+  --- derivatives
+  derivative hd(*:Stream) .
+  derivative tl(*:Stream) .
+endtheory)
+
+(set auto contexts on .)
+(initialize .)
+
+--->  BITSTREAM |||- zip(odd(S), even(S)) = S
+
+(add goal zip(odd(S:Stream), even(S:Stream)) = S:Stream .)
+
+(coinduction .)
+
+(initialize .)
+--->  BITSTREAM |||- f(not(S)) = not(f(S))
+
+(add goal f(not(S:Stream)) = not(f(S:Stream)) .)
+
+(coinduction .)
+
+(initialize .)
+--->  BITSTREAM |||- { f(S) = zip(S, not(S)), f(morse) = morse }
+
+(add goal f(S:Stream) = zip(S:Stream, not(S:Stream)) .)
+
+(add goal f(morse) = morse .)
+
+(coinduction .)
+
+(initialize .)
+--->  BITSTREAM |||- f(morse) = morse 
+--->     it requires generalization
+(set generalization on .)
+
+(add goal f(morse) = morse .)
+
+(coinduction .)
+
+(initialize .)
+--->  BITSTREAM |||- morse = altMorse
+
+---> needs the proved above lemma: f(S) = zip(S, not(S))
+---> ... or we may prove the two properties together:
+
+(add goal f(S:Stream) = zip(S:Stream, not(S:Stream)) .)
+
+(add goal morse = altMorse .)
+
+(coinduction .)
+
+(initialize .)
+--->  BITSTREAM |||- 31zip(ozo, ozo) = s
+
+(add goal 31zip(ozo, ozo) = s .)
+(coinduction .)
+
+(initialize .)
+--->  BITSTREAM |||- 31zip(ozo, g(altMorse)) = g(altMorse)
+
+(add goal 31zip(ozo, g(altMorse)) = g(altMorse) .)
+(add goal 31zip(ozo, g(S:Stream)) = g(f(f(S:Stream))) .)
+(coinduction .)
+
+
