@@ -1,0 +1,38 @@
+***(
+
+  Properties for trees and lists of trees.
+
+)
+
+---(set show details on .)
+
+(theory TREE is
+
+  sorts Elt Tree TList .
+  subsort Tree < TList .
+
+  var L L' : TList .
+  var T T' : Tree .
+  var E E' : Elt .
+
+  op nil  :            -> TList [ctor] .
+  op _;_ : TList TList -> TList [ctor] .
+
+  op tr   : Elt  TList -> Tree [ctor] .
+
+  eq nil ; L = L .
+
+  op mirror : TList -> TList .
+  op mirror : Tree -> Tree .
+  eq mirror(tr(E, L)) = tr(E, mirror(L)) .
+  eq mirror(nil) = nil .
+  eq mirror(L ; L') = mirror(L) ; mirror(L') .
+  
+endtheory)
+
+(add goal mirror(mirror(L:TList)) = L:TList .)
+
+(induction .)
+
+(show proof .)
+

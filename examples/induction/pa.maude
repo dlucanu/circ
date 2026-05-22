@@ -1,0 +1,45 @@
+loop init .
+
+(theory MYNAT is
+  including BOOL .
+
+  sort Nat .
+
+  op 0 :     -> Nat [ctor] .
+  op s : Nat -> Nat [ctor] .
+
+  var M N P : Nat .
+
+  op _+_ : Nat Nat -> Nat [assoc comm] .
+  eq 0 + N = N .
+ --- eq M + 0 = M .
+ ---  eq M + s(N) = s(M + N) .
+
+  op 1 : -> Nat .
+  eq s(M) = M + 1 .
+ --- eq 1 = s(0) .
+
+ srl M + P = N + P
+   => 
+   M = N
+  .
+
+  op gcd : Nat Nat -> Nat .
+  eq gcd(M, 0) = M .
+  eq gcd(0, N + 1) = N + 1 .
+  eq gcd(M + N + 1, N + 1) = gcd(M, N + 1) .
+  eq gcd(M + 1, M + N + 1) = gcd(M + 1, N) .
+
+--- a lemma comming from the critical pairs
+  eq gcd(M + 1, M + 1) = M + 1 .
+
+endtheory)
+
+(initialize .)
+
+
+--- (add goal gcd(N:Nat, N:Nat) = N:Nat .)
+
+(add goal gcd(M:Nat + N:Nat, M:Nat + N:Nat) = M:Nat + N:Nat .)
+
+(induction .)

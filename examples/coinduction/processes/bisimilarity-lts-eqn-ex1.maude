@@ -1,0 +1,193 @@
+***(
+
+  This is an example of bisimilarity proving for two simple process.
+  The main idea is to transform the transitional systems into a 
+  behavioral specification with two derivatives:
+   next(_) - which returns all successors of a pair < state , label >
+
+    --- 1 ---
+   /         \
+  /          \/
+ p            q
+ /\          /
+  \         /
+   --- 0 ---
+   
+        -- a --       
+       / /\ /\ \
+      /  |  |   \  
+     1   0  0   0    
+     |   |  |   |    
+     |   /  \   |
+     \/ /    \ \/
+      b       c
+
+a === p
+
+p --1-> q
+q --0-> p
+
+a --1-> b \/ a --0-> c
+b --0-> a
+c --0-> a
+
+***)
+
+(theory RULES is
+  including BOOL .
+  
+  sort Label .
+  sort State .
+  sort Pair PairDisj .
+  subsort Pair < PairDisj .
+  
+  op _\/_ : PairDisj PairDisj -> PairDisj [assoc] .
+  
+  ops p q r a b c : -> State .
+  ops 0 1 ^     : -> Label . --- ^ is the start label
+  op <_`,_> : Label State -> Pair .
+  
+  op label : Pair -> Label .
+  op next  : Pair -> Pair .
+  
+  var L : Label .
+  var S : State .
+  
+  eq label(< L , S >) = L .
+  
+  eq next(< L , p >) = < 1 , q > .
+  eq next(< L , q >) = < 0 , p > .
+  
+  ***(
+  eq next(< L , p >) = < 1 , q > \/ < 1 , r > .
+  eq next(< L , q >) = < 0 , p > .
+  eq next(< L , r >) = < 1 , p > .
+  ***)
+  
+  eq next(< L , b >) = < 0 , a > .
+  eq next(< L , c >) = < 0 , a > .
+  
+  --- Each of the equations below leads to a distinct proof path.
+  --- eq next(< L , a >) =  < 1 , b > \/ < 0 , c > .
+  eq next(< L , a >) = < 0 , c > \/ < 1 , b > .
+  
+  var PD1 PD1' PD2 PD2' : PairDisj .
+  srl PD1 \/ PD1' = PD2
+   => PD1 = PD2
+   \/ PD1' = PD2
+  .
+  
+  srl PD1 = PD2 \/ PD2'
+   => PD1 = PD2
+   \/ PD1 = PD2'
+  .
+  
+  var L1 L2 : Label .
+  var S1 S2 : State .
+  csrl < L1 , S1 > = < L2 , S2 >
+    => true = false
+    if L1 =/= L2
+  .
+  
+  derivative label(*:Pair) .
+  derivative next(*:Pair) .
+endtheory)
+
+(initialize .)
+(set show details on .)
+
+(add goal < ^ , a > = < ^ , p > .)
+(coinduction .)
+
+eof
+
+(theory RULES is
+  including BOOL .
+  
+  sort Label .
+  sort State .
+  sort Pair .
+  
+  op _\/_ : State State -> State [assoc comm] .
+  op _\/_ : Pair  Pair  -> Pair  [assoc comm] .
+  
+  ops A B C D E F X Y Z T U V W M : -> State .
+  ops b c                         : -> Label .
+  
+  op <_`,_> : State Label -> Pair . 
+  
+  op next : State -> Pair .
+  op next : Pair  -> State .
+  
+  var L L' : Label .
+  var S S' : State .
+  
+  
+  eq next(A) = < A , b > \/ < A , c > .
+  eq next(B) = < B , c > .
+  eq next(C) = < C , c > .
+  eq next(D) = < D , b > .
+  eq next(E) = < E , b > .
+  eq next(F) = < F , b > .
+  
+  eq next(X) = < X , b > \/ < X , c > .
+  eq next(Y) = < Y , c > .
+  eq next(Z) = < Z , c > .
+  eq next(T) = < T , b > .
+  eq next(U) = < U , b > .
+  eq next(V) = < V , b > .
+  eq next(W) = < W , c > .
+  eq next(M) = < M , b > .
+  
+  eq next(< A , b >) = B \/ C .
+  eq next(< A , c >) = F .
+  eq next(< B , c >) = D .
+  eq next(< C , c >) = E .
+  eq next(< D , b >) = B .
+  eq next(< E , b >) = E .
+  eq next(< F , b >) = A .
+  
+  eq next(< X , b >) = Y \/ Z .
+  eq next(< X , c >) = M .
+  eq next(< Y , c >) = T .
+  eq next(< Z , c >) = U .
+  eq next(< T , b >) = V .
+  eq next(< U , b >) = W .
+  eq next(< V , b >) = V .
+  eq next(< W , c >) = U .
+  eq next(< M , b >) = X .
+  
+  derivative next(*:State) .
+  derivative next(*:Pair) .
+  
+  var S1 S2 S1' S2' : State .
+  var P P' : Pair .
+  var L1 L2 : Label .
+  
+  srl S1 \/ S2 = S1' \/ S2'
+    => (S1 = S1' /\ S2 = S2')
+    \/ (S1 = S2' /\ S2 = S1')
+  .
+  
+  srl < S , L > \/ P = < S' , L > \/ P' 
+    => next(< S , L >) = next(< S' , L >)
+    /\ P = P' 
+  .
+  
+  csrl < S1 , L1 > = < S2 , L2 >
+    => true = false
+    if L1 =/= L2
+  . 
+  
+endtheory)
+
+(initialize .)
+(set show details on .)
+
+(add goal A = X .)
+(coinduction .)
+
+
+
+eof 
+

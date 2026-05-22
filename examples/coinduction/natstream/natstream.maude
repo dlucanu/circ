@@ -1,0 +1,68 @@
+***(
+    This files includes behavioral properties of the streams whose visible
+    data are natural numbers.
+    A main property proved is that merging two sorted streams we get sorted 
+    stream. The proof requires case analysis and is included in
+
+    E. Goriac, D. Lucanu, and G. Rosu.
+    Automating coinduction with case analysis.    In ICFEM 2010, Lecture Notes in Computer Science, 2010.
+***)
+
+
+loop init .
+
+(theory NATSTREAM is
+  including NAT .
+
+  sort Stream .
+
+  var M N : Nat .
+  var S S1 S2 : Stream .
+  
+  op hd : Stream -> Nat .
+  op tl : Stream -> Stream .
+
+  op merge : Stream Stream -> Stream .
+  geq hd(merge(S1, S2)) =
+    hd(S1) if hd(S1) <  hd(S2) = true  []
+    hd(S2) if hd(S1) <= hd(S2) = false []
+  .
+  geq tl(merge(S1, S2)) =
+    merge(tl(S1), S2) if hd(S1) <  hd(S2) = true  []
+    merge(S1, tl(S2)) if hd(S1) <= hd(S2) = false []
+  .
+  
+  op  int : Bool -> Nat .
+  eq  int(false) = 0 .
+  eq  int(true)  = 1 .
+  ceq int(M < N) = 0 if N <= M = true .
+  ceq int(M < N) = 1 if N <= M = false .
+  
+  *** isSorted(S) <=> toBits(S) = ones
+  op toBits : Stream -> Stream .
+  eq hd(toBits(S)) = int(hd(S) < hd(tl(S))) .
+  eq tl(toBits(S)) = toBits(tl(S)) .
+  
+  op isSorted : Stream -> Bool .
+  ceq hd(S) < hd(tl(S)) = true if isSorted(S) = true .
+  ceq isSorted(tl(S))   = true if isSorted(S) = true .
+  
+  op ones : -> Stream .
+  eq hd(ones) = 1 .
+  eq tl(ones) = ones .
+  
+  derivative hd(*:Stream) .
+  derivative tl(*:Stream) . 
+endtheory)
+
+(set auto contexts on .)
+(set show details off .)
+(initialize .)
+
+(add cgoal toBits(merge(S1:Stream, S2:Stream)) = ones if
+     isSorted(S1:Stream) = true /\
+     isSorted(S2:Stream) = true .)
+
+(coinduction .)
+(show proof .)
+

@@ -1,0 +1,127 @@
+***(
+    This files includes behavioral properties of the streams whose visible
+    data are natural numbers.
+    A main property proved is Rev3(N)(Rev3(N)(S)) = S described in
+	
+	M. Niqui and J.J.M.M. Rutten. Sampling, splitting and merging in 
+	coinductive stream calculus.
+	In Mathematics of Program Construction 2010(MPC'10), 2010.
+	See CWI Technical report SEN-E0904, 2009,
+	http://homepages.cwi.nl/~janr/papers/.
+
+	The proof requires case analysis and is included in
+
+    E. Goriac, D. Lucanu, and G. Rosu.
+    Automating coinduction with case analysis.
+    In ICFEM 2010, Lecture Notes in Computer Science, 2010.
+
+    The current version of the tool generates a smaller proof.
+***)
+
+
+loop init .
+(theory REV3 is
+  including INT .
+  sort Stream .
+  var N          : Int .      op hd : Stream -> Bool .
+  var S S1 S2 S3 : Stream .   op tl : Stream -> Stream .
+  
+  op T3`(_`)`(_`) : Int Stream -> Stream .
+  ceq hd(T3(N)(S)) = hd(S)         if N rem 3 = 0 .
+  ceq hd(T3(N)(S)) = hd(tl(S))     if N rem 3 = 1 .
+  ceq hd(T3(N)(S)) = hd(tl(tl(S))) if N rem 3 = 2 .
+  eq tl(T3(N)(S)) = T3(N)(tl(tl(tl(S)))) .
+
+  op Z3 : Stream Stream Stream -> Stream .
+  eq hd(Z3(S1, S2, S3)) = hd(S1) .
+  eq tl(Z3(S1, S2, S3)) = Z3(S2, S3, tl(S1)) .
+
+  op Rev3`(_`)`(_`) : Nat Stream -> Stream .
+  eq Rev3(N)(S) = Z3(T3(N)(S), T3(N - 1)(S), T3(N - 2)(S)) .
+
+  cases pattern = N if (N rem 3 = 0) 
+                  \/ (N rem 3 = 1) 
+                  \/ (N rem 3 = 2) . 
+
+  derivative hd(*:Stream) .
+  derivative tl(*:Stream) . 
+
+  --- some lemmata
+  ceq (N - 1) rem 3 = 2 if (N rem 3) == 0 .
+  ceq (N - 1) rem 3 = 0 if (N rem 3) == 1 .
+  ceq (N - 1) rem 3 = 1 if (N rem 3) == 2 .
+  ceq (N - 2) rem 3 = 1 if (N rem 3) == 0 .
+  ceq (N - 2) rem 3 = 2 if (N rem 3) == 1 .
+  ceq (N - 2) rem 3 = 0 if (N rem 3) == 2 .
+  ceq (N - 3) rem 3 = 0 if (N rem 3) == 0 .
+  ceq (N - 3) rem 3 = 1 if (N rem 3) == 1 .
+  ceq (N - 3) rem 3 = 2 if (N rem 3) == 2 .
+
+endtheory)
+
+(initialize .)
+
+
+(add goal T3(N:Int)(S:Stream) = T3(N:Int - 3)(S:Stream) .)
+---(ccstep .)
+(coinduction .)
+
+(show proof .)
+
+loop init .
+
+(theory REV3 is
+  including INT .
+  sort Stream .
+  var N          : Int .      op hd : Stream -> Bool .
+  var S S1 S2 S3 : Stream .   op tl : Stream -> Stream .
+  
+  op T3`(_`)`(_`) : Int Stream -> Stream .
+  ceq hd(T3(N)(S)) = hd(S)         if N rem 3 = 0 .
+  ceq hd(T3(N)(S)) = hd(tl(S))     if N rem 3 = 1 .
+  ceq hd(T3(N)(S)) = hd(tl(tl(S))) if N rem 3 = 2 .
+  eq tl(T3(N)(S)) = T3(N)(tl(tl(tl(S)))) .
+
+  op Z3 : Stream Stream Stream -> Stream .
+  eq hd(Z3(S1, S2, S3)) = hd(S1) .
+  eq tl(Z3(S1, S2, S3)) = Z3(S2, S3, tl(S1)) .
+
+---  op Rev3 : Stream -> Stream .
+---  eq Rev3(S) = Z3(T3(2)(S), T3(1)(S), T3(0)(S)) .
+
+  op Rev3`(_`)`(_`) : Nat Stream -> Stream .
+  eq Rev3(N)(S) = Z3(T3(N)(S), T3(N - 1)(S), T3(N - 2)(S)) .
+
+  cases pattern = N if (N rem 3 = 0) 
+                  \/ (N rem 3 = 1) 
+                  \/ (N rem 3 = 2) . 
+
+  derivative hd(*:Stream) .
+  derivative tl(*:Stream) . 
+
+  --- some lemmata
+  ceq (N - 1) rem 3 = 2 if (N rem 3) == 0 .
+  ceq (N - 1) rem 3 = 0 if (N rem 3) == 1 .
+  ceq (N - 1) rem 3 = 1 if (N rem 3) == 2 .
+  ceq (N - 2) rem 3 = 1 if (N rem 3) == 0 .
+  ceq (N - 2) rem 3 = 2 if (N rem 3) == 1 .
+  ceq (N - 2) rem 3 = 0 if (N rem 3) == 2 .
+  ceq (N - 3) rem 3 = 0 if (N rem 3) == 0 .
+  ceq (N - 3) rem 3 = 1 if (N rem 3) == 1 .
+  ceq (N - 3) rem 3 = 2 if (N rem 3) == 2 .
+
+endtheory)
+
+(initialize .)
+
+---(set show details on .)
+
+
+(add goal Rev3(N:Int)(Rev3(N:Int)(S:Stream)) = S:Stream .)
+(coinduction .)
+
+(show proof .)
+eof
+
+
+

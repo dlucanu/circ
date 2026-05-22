@@ -1,0 +1,52 @@
+***(
+
+  Proof by induction that the length of the sum of 2 lists is
+  the sum of their lengths.
+
+)
+
+---(set show details on .)
+
+(fth MYNAT is
+  sorts MyNat MyNzNat .
+  subsort MyNzNat < MyNat .
+
+  var M N P : MyNat .
+
+  op 0 : -> MyNat [ctor] .
+  op s_ : MyNat -> MyNzNat [ctor] .
+  op _+_ : MyNat MyNat -> MyNat [prec 33 assoc comm] .
+
+  eq M + 0 = M .
+  eq M + (s N) = s(M + N) .
+endfth)
+
+(cth MYLIST is
+  including MYNAT .
+
+  sorts Elt MyList .
+  subsort Elt < MyList .
+
+  var L L' : MyList .
+  var E    : Elt .
+
+  op nil : -> MyList [ctor] .
+  op cons : Elt MyList -> MyList [ctor] .
+  op __ : MyList MyList -> MyList [assoc] .
+  op length : MyList -> MyNat .
+
+  eq nil L' = L' .
+  eq cons(E, nil) = E .
+  eq cons(E, L) L' = cons(E, (L L')) .
+  eq length(nil) = 0 .
+  eq length(E) = s 0 .
+  eq length(cons(E, L)) = s 0 + length(L) .
+endcth)
+
+(set show proved properties off .)
+
+(add lemma E:Elt L:MyList = cons(E:Elt, L:MyList) .) 
+
+(add goal length(L:MyList L':MyList) = length(L:MyList) + length(L':MyList) .)
+(induction .)
+---(induction on L:MyList .)

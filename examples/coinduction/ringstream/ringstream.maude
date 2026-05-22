@@ -1,0 +1,157 @@
+***(
+
+  Includes the proofs of the main properties for the
+  ring of streams, excepting the associativity which are separately proved
+  and here are given as attributes: the sum (_+_) is assumed to be
+  associative and commutative.
+  In some cases, after a property is proved, it as added to the
+  specification as lemma helping to prove the subsequent properties.
+
+  The examples are inspired from
+
+    J. J. M. M. Rutten. 
+    A coinductive calculus of streams.    Mathematical Structures in Computer Science, 15(1):93-147, 2005.
+
+    and studied in
+
+    D. Lucanu,
+    Proving Behavioral Commutativity with CIRC.
+    In SYNASC 2007, IEEE Computer Society, 2007.
+)
+
+---(set show details on .)
+
+(theory RING is 
+  sort Data .
+
+  vars D D1 D2 : Data .
+
+  ops 0 1 : -> Data .
+  op _+_ : Data Data -> Data [prec 33 assoc comm] .
+  op -_ : Data -> Data .
+  op _*_ : Data Data -> Data [prec 31 assoc comm] .
+
+  eq D * 1 = D .
+  eq D * (D1 + D2) = D * D1 + D * D2 .
+  eq D * 0 = 0 .
+  eq D + (- D) = 0 .
+  eq D + 0 = D .
+  eq (- 1) * D = - D .
+endtheory)
+
+(theory RINGSTREAM is
+  including RING .
+  sort Stream .
+
+  vars S1 S2 : Stream .
+  vars M N1 N2 : Data .
+
+  --- basic behavioral operations
+  op hd : Stream -> Data .
+  op tl : Stream -> Stream .
+
+  op one : -> Stream .
+  eq [1] = one .
+  eq hd(one) = 1 .
+  eq tl(one) = [0] .
+
+  --- sum
+  op _+_ : Stream Stream -> Stream [assoc comm prec 33] .
+  eq hd(S1 + S2) = hd(S1) + hd(S2) .
+  eq tl(S1 + S2) = tl(S1) + tl(S2) .
+
+   --- inclusion operation
+  op `[_`] : Data -> Stream .
+  eq hd([M]) = M .
+  eq tl([M]) = [0] .
+
+  --- convolution product
+  op _x_ : Stream Stream -> Stream [prec 31] .
+  eq hd(S1 x S2) = hd(S1) * hd(S2) .
+  eq tl(S1 x S2) = tl(S1) x S2 + [hd(S1)] x tl(S2) .
+
+  --- shuffle product
+  op _`(x`)_ : Stream Stream -> Stream [prec 31] .
+  eq hd(S1 (x) S2) = hd(S1) * hd(S2) .
+  eq tl(S1 (x) S2) = tl(S1) (x) S2 + S1 (x) tl(S2) .
+
+  --- some lemmas on data
+  eq 0 * M = 0 .
+  eq 0 + M = M .
+  eq 1 * M = M .
+  eq M * (N1 + N2) = M * N1 + M * N2 .
+  
+  --- the derivatives
+  der hd(*:Stream) .
+  der tl(*:Stream) .
+
+  --- special contexts
+  scx *:Stream + S:Stream .
+endtheory)
+
+(set auto contexts off .)
+(initialize .)
+
+(add goal [M:Data] + [N:Data] = [M:Data + N:Data] .)
+(coinduction .)
+
+(add goal S:Stream x [0] = [0] .)
+(coinduction .)
+
+(add goal [0] x S:Stream = [0] .)
+(coinduction .)
+
+(add goal (op _x_ : Stream Stream -> Stream [right id: one] .) .)
+(coinduction .)
+
+(add goal (op _x_ : Stream Stream -> Stream [left id: one] .) .)
+(coinduction .)
+
+(add goal [M:Data * N:Data] = [M:Data] x [N:Data] .)
+(coinduction .)
+
+
+(add goal (S1:Stream + S2:Stream) x S3:Stream = 
+          S1:Stream x S3:Stream + S2:Stream x S3:Stream .)
+(coinduction .)
+
+(add goal S1:Stream x (S2:Stream + S3:Stream) = 
+          S1:Stream x S2:Stream + S1:Stream x S3:Stream .)
+(coinduction .)
+
+(add goal (op _x_ : Stream Stream -> Stream [assoc] .) .)
+(coinduction .)
+
+
+*** shuffle product
+
+(add goal S:Stream (x) [0] = [0] .)
+(coinduction .)
+
+(add goal [0] (x) S:Stream = [0] .)
+(coinduction .)
+
+(add goal (op _`(x`)_ : Stream Stream -> Stream [right id: one] .) .)
+(coinduction .)
+
+(add goal (op _`(x`)_ : Stream Stream -> Stream [left id: one] .) .)
+(coinduction .)
+
+(add goal [M:Data] x S:Stream = [M:Data] (x) S:Stream .)
+(coinduction .)
+
+(add goal  S:Stream x [M:Data] = S:Stream (x) [M:Data] .)
+(coinduction .)
+
+(add goal (S1:Stream + S2:Stream) (x) S3:Stream = 
+          S1:Stream (x) S3:Stream + S2:Stream (x) S3:Stream .)
+(coinduction .)
+
+(add goal S1:Stream (x) (S2:Stream + S3:Stream) = 
+          S1:Stream (x) S2:Stream + S1:Stream (x) S3:Stream .)
+(coinduction .)
+
+(set show proved properties off .)
+
+(add goal (op _`(x`)_ : Stream Stream -> Stream [assoc comm] .) .)
+(coinduction .)

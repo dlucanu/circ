@@ -1,0 +1,86 @@
+loop init .
+
+set trace off .
+
+(fmod AP{X :: TRIV, Y :: TRIV} is
+  sort Func{X, Y} .
+  op _`[_`] : Func{X, Y} X$Elt -> Y$Elt .
+endfm)
+
+(fmod STREAM{X :: TRIV} is 
+  sorts Stream{X} .
+  var E : X$Elt .
+  var S : Stream{X} .
+  op hd : Stream{X} -> X$Elt .
+  op tl : Stream{X} -> Stream{X} . 
+endfm)
+
+(fmod STREAM-MAP{X :: TRIV, Y :: TRIV} is
+  inc AP{X,Y} .
+  pr STREAM{X} .
+  pr STREAM{Y} .
+
+  var L : Stream{X} .
+  var F : Func{X,Y} .
+
+  op map : Stream{X} Func{X,Y} -> Stream{Y} .
+
+  eq hd(map(L, F)) = F[hd(L)] .
+  eq tl(map(L, F)) = map(tl(L), F) .
+endfm)
+
+(fmod STREAM-ITER{X :: TRIV} is
+  inc AP{X,X} .
+  pr STREAM{X} .
+
+  var E : X$Elt .
+  var F : Func{X,X} .
+  op iter : X$Elt Func{X,X} -> Stream{X} .
+  eq hd(iter(E, F)) = E .
+  eq tl(iter(E, F)) = iter(F[E], F) .
+endfm)
+
+(view Bool from TRIV to BOOL is
+  sort Elt to Bool .
+endv)
+
+(theory STREAM-BOOL is
+  including BOOL .
+  pr STREAM-MAP{Bool,Bool} .
+  pr STREAM-ITER{Bool} .
+  
+  var BS : Stream{Bool} .
+
+  ops zeroes ones : -> Stream{Bool} .
+  
+  eq hd(zeroes) = false .
+  eq tl(zeroes) = zeroes .
+  eq hd(ones) = true .
+  eq tl(ones) = ones .
+
+  op not : -> Func{Bool, Bool} .
+  eq not[true] = false .
+  eq not[false] = true .
+
+  der hd(*:Stream{Bool}) .
+  der tl(*:Stream{Bool}) .
+endtheory)
+
+
+--- (set show details on .)
+
+--- nice idea for debugging ... and maybe even more than debugging
+--- set trace on .
+--- set trace rl off .
+--- trace exclude CIRC-INTERFACE .
+
+(add goal map(ones, not) = zeroes .)
+
+(coinduction .)
+
+(add goal map(iter(B:Bool, myF:Func{Bool,Bool}), myF:Func{Bool,Bool}) = iter(myF:Func{Bool,Bool} [ B:Bool ], myF:Func{Bool,Bool}) .) 
+
+(coinduction .)
+
+eof
+

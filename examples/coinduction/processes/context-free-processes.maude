@@ -1,0 +1,197 @@
+***(
+
+  Includes behavioral specification of the context-free processes
+  (see, e.g.,
+     Baeten, J. C. M., J. A. Bergstra and J. W. Klop, 
+     Decidability of bisimulation equivalence for process
+	 generating context-free languages, 
+	 Journal of the ACM 40 (1993), pp. 653-682.
+	 
+     Huttel, H. and C. Stirling, 
+     Actions Speak Louder Than Words: 
+	 Proving Bisimilarity for Context-Free Processes.,
+	 J. Log. Comput. 8 (1998), pp. 485-509.
+  )
+  A first version is published in
+     Dorel Lucanu, Grigore Rosu, and Gheorghe Grigoras. 
+	 Regular strategies as proof tactics for circ.
+	 Electr. Notes Theor. Comput. Sci., 204:83-98, 2008. 
+***)
+
+loop init .
+(set show details off .)
+
+(theory CFP is 
+  inc BOOL + INT .
+  sort Alph .          --- the alphabet
+  sort Pexp .          --- process expressions
+  sort Pid .           --- process ids
+  sort Peq .           --- process equations
+  sort Proc .          --- processes (sets of process equations)
+  op  pmain : -> Proc .
+
+  var E E1 E2 : Pexp .
+  var X Y X1 X2 : Pid .
+  var P P1 P2 Q : Proc .
+  var A B : Alph .
+
+  op _=def_ : Pid Pexp -> Peq .
+
+  subsort Peq < Proc .
+  op _`,_ : Proc Proc -> Proc [assoc comm] .
+  eq (P , P) = P .
+
+  op  _`{_`}  : Pexp Alph -> Pexp .  --- the letters derivatives
+
+  sort Int? .
+  subsort Int < Int? .
+  op infty : -> Int? .
+  op min : Int? Int? -> Int? [ditto] .
+  op _+_ : Int? Int? -> Int? [ditto] .
+  eq infty + I:Int = infty .
+  eq infty + infty = infty .
+  eq min(infty, I:Int) = I:Int .
+  eq min(infty, infty) = infty .
+
+  sort PidSet .
+  subsort Pid < PidSet .
+  op none : -> PidSet .
+  op _`,_ : PidSet PidSet -> PidSet [assoc comm id: none] .
+  var PS PS' : PidSet .
+  eq (X, X) = X .
+
+  op |_| : Pexp -> Int .
+  op f : PidSet Pexp -> Int? .
+  eq | A | = 1 .
+  eq | E1 + E2 | = min(| E1 |, | E2 |) .
+  eq | E1 # E2 | = | E1 | + | E2 | .
+  ceq | X | = f(X, E) if ( (X =def E), P ) := pmain .
+  eq f((X, PS), X) = infty .
+  ceq f((X, PS), Y) = f((X, Y, PS), E) 
+      if ( (Y =def E), P ) := pmain /\ X =/= Y .
+  eq f(PS, A ) = 1 .
+  eq f(PS, (E1 + E2)) = min(f(PS, E1), f(PS, E2)) .
+  eq f(PS, (E1 # E2)) = f(PS, E1) + f(PS, E2) .
+
+  subsort Alph < Pexp .  --- a letter
+  subsort Pid < Pexp .   --- a process id
+
+  op epsilon : -> Pexp . 
+  eq epsilon { A } = deadlock .
+
+  op deadlock : -> Pexp . 
+  eq deadlock { A } = deadlock .
+
+  eq B { A } = if A == B then epsilon else deadlock fi .
+
+  op _+_ : Pexp Pexp -> Pexp [prec 33 assoc comm] .  --- union
+  eq ( E1 + E2 ){ A } = (E1 { A }) + (E2 { A }) .
+
+  op _#_ : Pexp Pexp -> Pexp [prec 32 assoc] .  --- concatenation
+  eq ( E1 # E2 ){ A } = (E1 { A }) # E2 .
+
+  ceq X { A } = E { A } if ( (X =def E), P ) := pmain .
+
+  op noPlus : Pexp -> Bool .
+  eq noPlus(E1 + E2) = false .
+  eq noPlus(E) = true [owise] .
+
+  --- simplifying equations
+  eq deadlock + E = E .
+  eq deadlock # E = deadlock .
+  eq epsilon # E = E .
+  eq E + E = E . 
+  eq (E1 + E2) # E = (E1 # E) + (E2 # E) .
+  
+  der | *:Pexp | .
+endtheory)
+
+(set auto contexts on .)
+
+(theory CFP-EX1 is
+  including CFP .
+  ops a b : -> Alph .
+  ops X Y A B : -> Pid .
+  eq pmain = ( X =def ( a # X  # b ) + a # b ), 
+             ( A =def (a # B) + (a # Y) ),
+             ( B =def A # b ),
+             ( Y =def b ) .
+  der *:Pexp { a } .
+  der *:Pexp { b } .
+endtheory)
+
+(add goal X = A .)
+(coinduction .)
+
+(theory CFP-EX2 is
+  including CFP .
+
+  ops a b c : -> Alph .
+  ops T X U Y V S A B C : -> Pid .
+  eq pmain = ( S =def  a # A # C ), 
+             ( A =def (b # A # B) + b ),
+             ( B =def b ),
+             ( C =def c ),
+             ( T =def a # X # Y ),
+             ( X =def (b # U) + b ),
+             ( U =def (b # V # U) + (b # V) ),
+             ( V =def b ),
+             ( Y =def c ) .
+  der *:Pexp { a } .
+  der *:Pexp { b } .
+  der *:Pexp { c } .
+
+  csrl   (E1:Pexp + E2:Pexp) = (E1':Pexp + E2':Pexp)
+      => (   E1:Pexp = E1':Pexp
+          /\ E2:Pexp = E2':Pexp
+         )
+      if (   | E1:Pexp | = | E1':Pexp |
+          /\ | E2:Pexp | = | E2':Pexp | 
+         )
+    .
+  csrl   (E1:Pexp + E2:Pexp) = E1':Pexp
+      => (E1:Pexp = E1':Pexp)
+      if (  | E1:Pexp | = | E1':Pexp |
+          /\ | E2:Pexp | == | E1':Pexp | = false
+          /\ noPlus(E1':Pexp) = true
+         )
+    .
+
+  csrl   E1:Pexp = (E1':Pexp + E2':Pexp)
+      => (E1:Pexp = E2':Pexp)
+      if (  | E1:Pexp | = | E2':Pexp |
+          /\ | E1:Pexp | == | E1':Pexp | = false
+          /\ noPlus(E1:Pexp) = true
+         )
+    .
+
+endtheory)
+
+(add goal Y = C .)
+(add goal V = B .)
+(add goal S = T .)
+(coinduction .)
+
+(theory CFP-EX3 is
+  including CFP .
+
+  ops a b : -> Alph .
+  ops X Y A B : -> Pid .
+  eq pmain = ( X =def ( a # X # b ) + a # b ), 
+             ( Y =def b ),
+             ( A =def ( a # B ) + a # Y ),
+             ( B =def A # b ) .
+
+  der *:Pexp { a } .
+  der *:Pexp { b } .
+
+  csrl (E1:Pexp + E2:Pexp) = (E1':Pexp + E2':Pexp)
+    => E1:Pexp = E1':Pexp
+    /\ E2:Pexp = E2':Pexp
+    if (| E1:Pexp |) = (| E1':Pexp |)
+    /\ (| E2:Pexp |) = (| E2':Pexp |)
+  .
+endtheory)
+
+(add goal X = A .)
+(coinduction .)

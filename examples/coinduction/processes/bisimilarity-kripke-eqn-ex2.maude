@@ -1,0 +1,61 @@
+
+(theory RULES is
+  including BOOL .
+  
+  sort Prop .
+  sort State .
+  
+  op _\/_ : State State -> State [assoc] .
+  
+  ops A B C D E X Y Z T U V W : -> State .
+  ops b c                     : -> Prop .
+  
+  op obs  : State -> Prop .
+  op next : State -> State .
+  
+  var L : Prop .
+  var S : State .
+  
+  eq obs(A) = b .
+  eq obs(B) = c .
+  eq obs(C) = c .
+  eq obs(D) = b .
+  eq obs(E) = b .
+  
+  eq obs(X) = b .
+  eq obs(Y) = c .
+  eq obs(Z) = c .
+  eq obs(T) = b .
+  eq obs(U) = b .
+  eq obs(V) = b .
+  eq obs(W) = c .
+  
+  eq next(A) = B \/ C .
+  eq next(B) = D .
+  eq next(C) = E . 
+  eq next(D) = B .
+  eq next(E) = E .
+  
+  eq next(X) = Y \/ Z .
+  eq next(Y) = T .
+  eq next(Z) = U .
+  eq next(T) = V .
+  eq next(V) = V .
+  eq next(U) = W .
+  eq next(W) = U .
+  
+  var S1 S2 S1' S2' : State .
+  srl S1 \/ S2 = S1' \/ S2'
+   => (S1 = S1' /\ S2 = S2')
+   \/ (S1 = S2' /\ S2 = S1')
+  .
+ 
+  derivative obs(*:State) .
+  derivative next(*:State) .
+endtheory)
+
+(initialize .)
+(set show details off .)
+
+(add goal A = X .)
+(coinduction .)
