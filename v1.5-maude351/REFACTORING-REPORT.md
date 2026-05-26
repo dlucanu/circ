@@ -238,15 +238,29 @@ Without VDS, `S1` and `S2` could not be resolved as Stream variables, causing pa
 
 ---
 
-## Modification 11: VDS added to `solveBubbles` for `CaseEqDeclList` (cases)
+## Modification 11: VDS added to `solveBubbles` for `CaseEqDeclList` (cases) — error case
 
 **File:** `circ.maude`, `mod CIRC-UNIT`, `solveBubbles` for `CaseEqDeclList`
 
-**Change:** Same 3-arg → 4-arg `metaParse` upgrade applied to the four `metaParse` calls in the
-`CaseEqDeclList` equations.
+**Change:** Same 3-arg → 4-arg `metaParse` upgrade applied to the two `metaParse` calls in the
+`CaseEqDeclList` **error-case** equation (lines 4594–4595). The success-case equation (lines
+4582–4585) already used the 4-argument form with VDS:
 
-**Motivation:** Same root cause as Modifications 9 and 10. `cases` declarations also use
-variable names in their pattern and condition expressions.
+```maude
+--- Before (error case only):
+/\ RP  := metaParse(M'', '@wrapper '`( QL '`), '@@@)
+/\ RP' := metaParse(M'', '@wrapper '`( QL' '`), '@@@)
+
+--- After:
+/\ RP  := metaParse(M'', VDS, '@wrapper '`( QL '`), '@@@)
+/\ RP' := metaParse(M'', VDS, '@wrapper '`( QL' '`), '@@@)
+```
+
+**Motivation:** Same root cause as Modifications 9 and 10. `cases` declarations use variable
+names in their pattern and condition expressions. The error-case equation (which fires when either
+`metaParse` call fails to return a `ResultPair`) was still using the 3-arg form, causing it to
+misdiagnose genuine failures and preventing meaningful error reporting. With VDS present, the
+4-arg form correctly resolves variables in both the success and error paths.
 
 ---
 
@@ -395,6 +409,65 @@ Adding explicit parentheses around each equality condition eliminates the ambigu
 
 ---
 
+## Known Warning: multiple distinct parses for `ceq parseCondition` (line 5582)
+
+**File:** `circ.maude`, `mod CIRC-DATABASE-HANDLING`, line 5582
+
+**Warning text emitted at load time:**
+```
+Warning: "circ.maude", line 5582 (mod CIRC-DATABASE-HANDLING): multiple
+    distinct parses for statement
+ceq parseCondition ('bubble [T], Q, DB, M-WORK) = COND if M := addInfoConds (
+    M-WORK) /\ QL := downQidList (T) /\ RP := metaParse (M, '`( QL '`),
+    '@Condition@) /\ T' := getTerm (RP) /\ COND := parseCond (T') .
+```
+
+**Status:** Benign — the equation is correctly processed and all proofs pass. No code change
+is needed or possible.
+
+**Explanation:**
+
+In Maude 3.5.1, the built-in module `META-CONDITION` (compiled into the Maude binary, not a
+`.maude` file) declares two overloads of the conjunction operator:
+
+```maude
+op _/\_ : EqCondition EqCondition -> EqCondition [ctor assoc id: nil prec 73] .
+op _/\_ : Condition   Condition   -> Condition   [ctor assoc id: nil prec 73] .
+```
+
+with the subsort `EqCondition < Condition`.
+
+Every atom in the `if` clause of `ceq parseCondition` is a **matching condition** (`:=`), which
+has sort `EqCondition`. Because `EqCondition < Condition`, both overloads of `/\` are applicable
+to a conjunction of `EqCondition` atoms, giving two syntactically valid parses of the entire `if`
+clause:
+
+- **Parse 1** — all `/\` resolved via `EqCondition /\ EqCondition → EqCondition`: the whole
+  condition has sort `EqCondition`.
+- **Parse 2** — all `/\` resolved via `Condition /\ Condition → Condition`: the whole condition
+  has sort `Condition`.
+
+Maude detects both parses and issues the warning. It then selects Parse 1 (the more specific
+`EqCondition` result) because of regularity — the operator with the most specific applicable
+result sort wins. The equation therefore behaves exactly as intended.
+
+**Why it cannot be suppressed:**
+
+The natural attempt to resolve such ambiguity is to add explicit parentheses around the
+sub-conditions. However, the atoms in a `ceq if` clause — matching conditions (`:=`), equality
+conditions (`=`), sort tests (`::`), and rewrite conditions (`=>`) — are **built-in grammar
+productions**, not term-level operators. Writing, for example,
+`(M := addInfoConds(M-WORK))` causes a parse error (`"didn't expect token :=:"`), because `:=`
+cannot appear inside a parenthesized term expression. There is no syntactic mechanism in Maude to
+force one of the two `/\` overloads within a condition without rewriting the condition in a
+fundamentally different way.
+
+The warning is therefore an unavoidable artefact of the two-overload design of `META-CONDITION`
+combined with the `EqCondition < Condition` subsort. It is present in the refactored code and
+can be safely ignored.
+
+---
+
 ## Summary Table
 
 | # | File | What Changed | Root Cause |
@@ -409,7 +482,7 @@ Adding explicit parentheses around each equality condition eliminates the ambigu
 | 8 | `circ.maude` | `addCoFreezingSorts`: remove equations with undeclared vars, add `[owise]` | Maude 3.5.1 rejects undeclared variables in equations (hard error) |
 | 9 | `circ.maude` | `solveBubbles`/`SimpRlDeclList`: 3-arg → 4-arg `metaParse` with VDS | Maude 3.5.1 3-arg `metaParse` cannot resolve unqualified variable names → srl/csrl declarations broken |
 | 10 | `circ.maude` | `solveBubbles`/`GrdEqDeclList`: 3-arg → 4-arg `metaParse` with VDS | Same as #9; `geq` declarations broken |
-| 11 | `circ.maude` | `solveBubbles`/`CaseEqDeclList`: 3-arg → 4-arg `metaParse` with VDS | Same as #9; `cases` declarations broken |
+| 11 | `circ.maude` | `solveBubbles`/`CaseEqDeclList` error case: 3-arg → 4-arg `metaParse` with VDS | Same as #9; `cases` error path broken (success path was already correct) |
 | 12 | `circ.maude` | `eMetaPrettyPrint` → `eMetaPrettyPrintEq` | Function renamed in Full Maude 3.5.1 |
 | 13 | `full-maude351.maude` | Add `pr LOOP-MODE . pr LEXICAL .` | Required for Circ's read-eval-print loop interface |
 | 14 | `context-free-processes.maude` | Explicit parens around Bool sub-conditions in `csrl` IF clauses | `Bool < @Condition@` + `gather('& '&)` on `_=_` creates ambiguity in Maude 3.5.1 |

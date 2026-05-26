@@ -21,3 +21,7 @@
 **Dorel Lucanu, Grigore Rosu,** and **Gheorghe Grigoras**. Regular strategies as proof tactics for CIRC. Electron. Notes Theor. Comput. Sci., 204:83--98, 2008. [bib](https://dblp.org/rec/journals/entcs/LucanuRG08.bib) [DOI](http://dx.doi.org/10.1016/j.entcs.2008.03.055)
 
 **Georgiana Caltais, Eugen-Ioan Goriac, Dorel Lucanu,** and **Gheorghe Grigoras**. *A rewrite stack machine for ROC!* In Viorel Negru, Tudor Jebelean, Dana Petcu, and Daniela Zaharie, editors, SYNASC 2008, 10th International Symposium on Symbolic and Numeric Algorithms for Scientific Computing, Timisoara, Romania, 26-29 September 2008, pages 85--91. IEEE Computer Society, 2008. [bib](https://dblp.org/rec/conf/synasc/CaltaisGLG08.bib) [DOI](http://dx.doi.org/10.1109/SYNASC.2008.76)
+
+**Dorel Lucanu, Grigore Rosu, Eugen Goriac, Georgiana Caltais**
+, [arXiv](https://arxiv.org/abs/2605.24968), 2026
+[DOI](https://doi.org/10.48550/arXiv.2605.24968)

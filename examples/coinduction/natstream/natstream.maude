@@ -60,8 +60,8 @@ endtheory)
 (initialize .)
 
 (add cgoal toBits(merge(S1:Stream, S2:Stream)) = ones if
-     isSorted(S1:Stream) = true /\
-     isSorted(S2:Stream) = true .)
+     (isSorted(S1:Stream) = true) /\
+     (isSorted(S2:Stream) = true) .)
 
 (coinduction .)
 (show proof .)

@@ -720,6 +720,8 @@ fmod BASIC-DATA-TYPES is
   op replace : EqCondition Term Term -> EqCondition .
   op replace : TermList  Term Term -> TermList .
   op replace : NsSet{IndSource}  Term Term -> NsSet{IndSource} .
+  --- added to fix the preregularity of the replace function
+  op replace : TermQid Term Term -> TermQid .
 
   --- on terms:
   eq replace(T, T, T') = T' .
@@ -4605,7 +4607,7 @@ mod CIRC-UNIT is
            else getTerm(RP')
          fi
   .
-  
+
 
 --- Get new syntax from the polished top module and translate it into
 --- the internal module in the database
@@ -5199,7 +5201,7 @@ mod CIRC-DATABASE-HANDLING is
   var U U' : [Term] .
   var COND' : EqCondition .
   
---- getVarsIndFrozen
+  --- getVarsIndFrozen
   op isIndFrozen : Equation NsList{InductionUple} -> Bool .
   eq isIndFrozen(E, IUL) = getVarsIndFrozen(E, IUL) == nsempty-V .
   eq isIndFrozen(E, IUL) = true [owise] .
