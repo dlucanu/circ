@@ -1,4 +1,7 @@
 # CIRC
+[DOI: 10.5281/zenodo.20345983](https://doi.org/10.5281/zenodo.20345983)
+
+
  CIRC is an automated (co)inductive theorem prover based on circular (co)induction.
 # A Selection of Papers Related to CIRC
 
