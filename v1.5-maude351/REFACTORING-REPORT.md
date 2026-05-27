@@ -409,11 +409,11 @@ Adding explicit parentheses around each equality condition eliminates the ambigu
 
 ---
 
-## Known Warning: multiple distinct parses for `ceq parseCondition` (line 5582)
+## Modification 16: Eliminate multiple-parses warning in `ceq parseCondition` (line 5582)
 
 **File:** `circ.maude`, `mod CIRC-DATABASE-HANDLING`, line 5582
 
-**Warning text emitted at load time:**
+**Warning eliminated:**
 ```
 Warning: "circ.maude", line 5582 (mod CIRC-DATABASE-HANDLING): multiple
     distinct parses for statement
@@ -422,49 +422,54 @@ ceq parseCondition ('bubble [T], Q, DB, M-WORK) = COND if M := addInfoConds (
     '@Condition@) /\ T' := getTerm (RP) /\ COND := parseCond (T') .
 ```
 
-**Status:** Benign — the equation is correctly processed and all proofs pass. No code change
-is needed or possible.
-
-**Explanation:**
-
-In Maude 3.5.1, the built-in module `META-CONDITION` (compiled into the Maude binary, not a
-`.maude` file) declares two overloads of the conjunction operator:
-
+**Change:**
 ```maude
-op _/\_ : EqCondition EqCondition -> EqCondition [ctor assoc id: nil prec 73] .
-op _/\_ : Condition   Condition   -> Condition   [ctor assoc id: nil prec 73] .
+--- Before:
+ceq parseCondition('bubble[T], Q, DB, M-WORK) = COND
+  if M := addInfoConds(M-WORK)
+  /\ QL  := downQidList(T)
+  /\ RP  := metaParse(M, '`( QL '`), '@Condition@)
+  /\ T' := getTerm(RP)
+  /\ COND := parseCond(T')
+  .
+
+--- After:
+ceq parseCondition('bubble[T], Q, DB, M-WORK) = COND
+  if M := addInfoConds(M-WORK)
+  /\ QL  := downQidList(T)
+  /\ RP  := metaParse(M, '`( QL '`), '@Condition@)
+  /\ COND := parseCond(getTerm(RP))
+  .
 ```
 
-with the subsort `EqCondition < Condition`.
+**Root cause (analysis by Francisco Durán):**
 
-Every atom in the `if` clause of `ceq parseCondition` is a **matching condition** (`:=`), which
-has sort `EqCondition`. Because `EqCondition < Condition`, both overloads of `/\` are applicable
-to a conjunction of `EqCondition` atoms, giving two syntactically valid parses of the entire `if`
-clause:
+The original condition contained the two consecutive atoms:
 
-- **Parse 1** — all `/\` resolved via `EqCondition /\ EqCondition → EqCondition`: the whole
-  condition has sort `EqCondition`.
-- **Parse 2** — all `/\` resolved via `Condition /\ Condition → Condition`: the whole condition
-  has sort `Condition`.
+```
+/\ T' := getTerm(RP) /\ COND := parseCond(T')
+```
 
-Maude detects both parses and issues the warning. It then selects Parse 1 (the more specific
-`EqCondition` result) because of regularity — the operator with the most specific applicable
-result sort wins. The equation therefore behaves exactly as intended.
+The sub-expression `T' := getTerm(RP) /\ COND` is a valid term of sort `EqCondition` (a matching
+condition whose right-hand side is `getTerm(RP) /\ COND`, where `_/\_` is the `EqCondition`
+conjunction and `COND` is an `EqCondition` variable). This means Maude can parse the tail of the
+`if` clause in two structurally different ways:
 
-**Why it cannot be suppressed:**
+- **Parse 1 (intended):**
+  `(T' := getTerm(RP)) /\ (COND := parseCond(T'))` — two separate matching conditions.
 
-The natural attempt to resolve such ambiguity is to add explicit parentheses around the
-sub-conditions. However, the atoms in a `ceq if` clause — matching conditions (`:=`), equality
-conditions (`=`), sort tests (`::`), and rewrite conditions (`=>`) — are **built-in grammar
-productions**, not term-level operators. Writing, for example,
-`(M := addInfoConds(M-WORK))` causes a parse error (`"didn't expect token :=:"`), because `:=`
-cannot appear inside a parenthesized term expression. There is no syntactic mechanism in Maude to
-force one of the two `/\` overloads within a condition without rewriting the condition in a
-fundamentally different way.
+- **Parse 2 (spurious):**
+  `(T' := getTerm(RP) /\ COND) := parseCond(T')` — a single matching condition whose pattern is
+  `T' := getTerm(RP) /\ COND` (an `EqCondition` term) and whose subject is `parseCond(T')`.
 
-The warning is therefore an unavoidable artefact of the two-overload design of `META-CONDITION`
-combined with the `EqCondition < Condition` subsort. It is present in the refactored code and
-can be safely ignored.
+Both parses are syntactically valid because condition atoms — matching (`:=`), equality (`=`),
+sort test (`::`), rewrite (`=>`) — are built-in grammar productions and cannot be wrapped in
+parentheses to disambiguate them (writing `(T' := getTerm(RP))` is a parse error: Maude reports
+`"didn't expect token :=:"`).
+
+**Fix:** Eliminating the intermediate variable `T'` by inlining `getTerm(RP)` directly into the
+`parseCond` call removes the ambiguous sub-expression entirely. With only four atoms in the `if`
+clause, all of them straightforward matching conditions, no multiple-parse situation arises.
 
 ---
 
@@ -487,6 +492,7 @@ can be safely ignored.
 | 13 | `full-maude351.maude` | Add `pr LOOP-MODE . pr LEXICAL .` | Required for Circ's read-eval-print loop interface |
 | 14 | `context-free-processes.maude` | Explicit parens around Bool sub-conditions in `csrl` IF clauses | `Bool < @Condition@` + `gather('& '&)` on `_=_` creates ambiguity in Maude 3.5.1 |
 | 15 | `natstream.maude` | Sort annotations `S1:Stream` + parens in `add cgoal` condition | (A) Maude 3.5.1 requires `NAME : SORT` 3-token form; (B) same Bool/Condition ambiguity as #14 |
+| 16 | `circ.maude` | Inline `getTerm(RP)` into `parseCond(...)`, removing intermediate variable `T'` | `T' := getTerm(RP) /\ COND` is a valid `EqCondition` term, creating a spurious second parse of the `if` clause |
 
 ---
 

@@ -5583,8 +5583,7 @@ mod CIRC-DATABASE-HANDLING is
     if M := addInfoConds(M-WORK)
     /\ QL  := downQidList(T)
     /\ RP  := metaParse(M, '`( QL '`), '@Condition@)
-    /\ T' := getTerm(RP)
-    /\ COND := parseCond(T')
+    /\ COND := parseCond(getTerm(RP))
   .
 
   op errorCond : QidList -> [EqCondition] .
