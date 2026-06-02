@@ -496,6 +496,186 @@ clause, all of them straightforward matching conditions, no multiple-parse situa
 
 ---
 
+## Output Comparison: Maude 2.4 vs Maude 3.5.1
+
+The script `compare-outputs.py` was used to compare the outputs of all 25 example files between
+Maude 2.4 (from `all-outputs-maude24.txt`) and Maude 3.5.1 (run with the refactored
+`circ.maude` and `full-maude351.maude`). Noise is stripped before diffing: Maude banners,
+version lines, copyright notices, timestamps, and `rewrites: ...` performance lines.
+
+Of the 25 examples, **19 produce identical output** after noise removal. The remaining 6 show
+differences, grouped below by nature.
+
+---
+
+### Difference 1 — `bitstream.maude`: one proof that timed out in Maude 2.4 now succeeds
+
+**Maude 2.4:**
+```
+Goal added: f(morse) = morse
+Stopped: the number of prover steps was exceeded.
+```
+
+**Maude 3.5.1:**
+```
+Goal added: f(morse) = morse
+Grlz [* f(tl(morse)) *] = [* zip(tl(morse),not(tl(morse))) *] to
+     [* zip(V0:Stream,not(V0:Stream)) *] = [* f(V0:Stream) *]
+Proof succeeded.
+  Number of derived goals: 8
+  Number of proving steps performed: 44
+```
+
+**Explanation.** The property `f(morse) = morse` requires generalization to prove; the example
+file activates it with `(set generalization on .)` before the proof attempt, which switches the
+engine from `coinduction` to `coinduction-grlz`:
+
+```maude
+eq coinduction-grlz =
+  ((normalize |> eqRed |> simplify |> generalize |> checkcond |> cases |> ccstep) !) .
+```
+
+The proof proceeds as follows. Applying the co-freezing derivatives `hd` and `tl` to
+`f(morse) = morse` produces two sub-goals. The first, `hd(f(morse)) = hd(morse)`, reduces
+immediately to `0 = 0`. The second, `tl(f(morse)) = tl(morse)`, requires one further derivative
+step via `tl(tl(-))`:
+
+- LHS: `tl(tl(f(morse)))` rewrites to `f(tl(morse))` by `eq tl(tl(f(S))) = f(tl(S))`.
+- RHS: `tl(tl(morse))` rewrites to `zip(tl(morse), not(tl(morse)))` by `eq tl(tl(morse)) = zip(tl(morse), not(tl(morse)))`.
+
+This yields the sub-goal `f(tl(morse)) = zip(tl(morse), not(tl(morse)))`. The `generalize`
+step inspects the subterms of the LHS and finds that `tl(morse)` appears identically in both
+sides. It replaces `tl(morse)` with a fresh variable `V0:Stream`, producing:
+
+```
+f(V0:Stream) = zip(V0:Stream, not(V0:Stream))
+```
+
+This is exactly the property `f(S) = zip(S, not(S))` proved in the preceding session, so it
+closes immediately. The whole proof finishes in 44 steps.
+
+In **Maude 2.4** the `generalize` step never fires (no "Grlz" line appears). The underlying
+cause is a behavioural difference in `metaXmatch` between Maude 2.4 and 3.5.1: the `graftTree`
+function (which uses `metaXmatch` to locate and replace subterm occurrences) fails to identify
+`tl(morse)` as a common subterm in Maude 2.4, so `generalizeTerms` always returns `noVar` and
+`CanGeneralize` is always false. Without generalization, the proof falls back to plain coinduction,
+generating an unbounded family of sub-goals with increasingly nested `tl(morse)` applications,
+until the 256-step limit is exceeded (after 249,072 internal Maude rewrites).
+
+This is the only case where the Maude 3.5.1 result is **strictly better**: a proof that was
+out of reach in Maude 2.4 now succeeds.
+
+---
+
+### Difference 2 — `mapstr.maude`: advisory warning removed; full proof trace printed
+
+**Maude 2.4 only (absent in Maude 3.5.1):**
+```
+Advisory: View Bool redefined.
+```
+
+**Maude 3.5.1 only (absent in Maude 2.4):**
+The full `=========...` proof trace blocks are printed after `Proved properties:`.
+
+**Explanation.**
+
+- The `Advisory: View Bool redefined.` message was emitted by Maude 2.4 when a view named `Bool`
+  was defined after one already existed. Maude 3.5.1 handles view redefinition silently (no
+  advisory). The proof result is unaffected.
+
+- The proof trace (the `=========...` blocks) is printed only when `(set show details on .)` is
+  active. In Maude 2.4, this flag either defaulted to `off` or the output was suppressed by a
+  `show details off` command executed earlier in the session. In Maude 3.5.1 with the refactored
+  code the default is `on`, so the trace is printed. In both versions the proof succeeds with the
+  same number of steps and the same proved properties.
+
+---
+
+### Difference 3 — `bisimilarity-lts-eqn-ex1.maude` and `bisimilarity-lts-rts-ex1.maude`: trailing spaces and one spacing change
+
+The differences are invisible when the text is rendered, because they involve whitespace only.
+Showing the unified diff directly (lines prefixed `-` are Maude 2.4 only, `+` are Maude 3.5.1
+only; a trailing `<SPACE>` is made explicit where it matters):
+
+```diff
+- Goal [* label(< ^,a >) *] = [* label(< ^,p >) *] normalized to
+-      [* ^ *] = [* ^ *] <SPACE>
++ Goal [* label(< ^,a >) *] = [* label(< ^,p >) *] normalized to
++      [* ^ *] = [* ^ *]
+
+- Visible goal [* true *] = [* false *]  failed during coinduction.
++ Visible goal [* true *] = [* false *] failed during coinduction.
+```
+
+**Explanation.** These are purely cosmetic differences in the pretty-printing output:
+
+- Several "normalized to" lines in Maude 2.4 carry a **trailing space** after the closing `*]`
+  (marked `<SPACE>` above). Maude 3.5.1 trims that trailing space. No semantic content differs.
+- The phrase `"failed during coinduction."` had **two spaces** before "failed" in Maude 2.4;
+  Maude 3.5.1 uses one. This is a minor formatting change in the Circ output string.
+
+In both versions the proof succeeds with the same structure, the same number of derived goals,
+and the same proved properties.
+
+---
+
+### Difference 4 — `bisimilarity-lts-rts-ex1.maude`: sort-disambiguated constant display
+
+**Maude 2.4:**
+```
+     [* 1 *] = [* 1 *]
+Goal [* 1 *] = [* 1 *] proved by reduction.
+```
+
+**Maude 3.5.1:**
+```
+     [* (1).Label *] = [* (1).Label *]
+Goal [* (1).Label *] = [* (1).Label *] proved by reduction.
+```
+
+**Explanation.** The constant `1` is overloaded: it exists in both sort `Bit` (from the `BIT`
+theory) and sort `Label` (from the `RULES` theory). In Maude 2.4, the pretty-printer printed
+`1` without sort qualification when it was unambiguous in context. Maude 3.5.1's pretty-printer
+adds the explicit `(1).Label` disambiguation when the constant belongs to a non-default sort.
+Both representations denote the same value; the proof structure and result are identical.
+
+---
+
+### Difference 5 — `combine-ind-coind.maude` and `list-sum-length.maude`: `theory` vs `module` in introduction message
+
+**Maude 2.4:**
+```
+Introduced theory MYNAT
+Introduced theory STREAM
+```
+
+**Maude 3.5.1:**
+```
+Introduced module MYNAT
+Introduced module STREAM
+```
+
+**Explanation.** In these two files, `MYNAT` and `STREAM` are declared with `fmod` (functional
+module), not `theory`. In Maude 2.4, the Circ prover incorrectly printed "Introduced theory"
+for all units, regardless of their actual kind. In the refactored Maude 3.5.1 version, the
+`[parseModule]` rule correctly reports "Introduced module" for `fmod`/`mod` units and "Introduced
+theory" only for genuine `theory`/`fth` units. The **Maude 3.5.1 output is more accurate**.
+
+---
+
+### Summary of differences
+
+| Example | Nature | Effect on correctness |
+|---------|--------|-----------------------|
+| `bitstream.maude` | One proof that timed out now succeeds (generalization works) | Maude 3.5.1 strictly better |
+| `mapstr.maude` | Advisory warning removed; proof trace now printed | No correctness impact |
+| `bisimilarity-lts-eqn-ex1.maude` | Trailing spaces and one double-space removed | Purely cosmetic |
+| `bisimilarity-lts-rts-ex1.maude` | Same cosmetic changes + sort-qualified constant display | Purely cosmetic |
+| `combine-ind-coind.maude` | "Introduced theory" → "Introduced module" for `fmod` units | Maude 3.5.1 more accurate |
+| `list-sum-length.maude` | Same "Introduced theory" → "Introduced module" fix | Maude 3.5.1 more accurate |
+
+---
+
 ## Key Maude 3.5.1 Compatibility Insights
 
 **Insight 1 — Variable annotation format:** In Maude 3.5.1, the token `N:Nat` is lexed as three
